@@ -1,0 +1,6 @@
+# Project build folders
+obj/
+bin/
+
+# Visual Studio folder
+.vs/
