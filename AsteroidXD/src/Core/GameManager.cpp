@@ -243,6 +243,8 @@ void InitGame()
 
     midMeteorsCount = 0;
     smallMeteorsCount = 0;
+
+    HideCursor();
 }
 
 // Update game (one frame)
@@ -250,9 +252,6 @@ void UpdateGame()
 {
     if (!gameOver)
     {
-        //Mouse position
-        DrawCircle(GetMouseX(), GetMouseY(), 5, RED);
-
         // Debug only xD
         //DrawText(FormatText("Magnitude Player Mouse: %02.02f", Vector2Length(Vector2Subtract(GetMousePosition(), player.position))), 0, 25, 20, GREEN);
 
@@ -532,6 +531,9 @@ void DrawGame()
     BeginDrawing();
 
     ClearBackground(BLACK);
+
+    //Mouse position
+    DrawCircle(GetMouseX(), GetMouseY(), 5, RED);
 
     if (!gameOver)
     {
