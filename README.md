@@ -7,7 +7,7 @@
 ---
 ## *`Mecánicas Base`*
 
-* >✦ El juego arranca con 4 asteroides grandes moviéndose hacia una dirección random de la
+* >✦El juego arranca con 4 asteroides grandes moviéndose hacia una dirección random de la
 pantalla.
 
 * >✦ Cuando un asteroide llega a un extremo de la pantalla reaparece en el otro extremo.
@@ -28,3 +28,9 @@ pierde una vida.
 * >✦ Los asteroides no colisionan entre sí (se traspasan).
 
 * >✦ El jugador arranca con 3 vidas, al perderla todas, el juego termina.
+
+## *`Implementaciones futuras`*
+
+* >✦ Implementar ECS (Entity Component System).
+* >✦ Implementar Arte 3D.
+* >✦ Efectos visuales.

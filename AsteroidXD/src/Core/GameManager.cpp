@@ -17,7 +17,7 @@
 
 #pragma region STRUCTS
 
-typedef struct Player {
+struct Player {
     Vector2 position;
     Vector2 speed;
     float acceleration;
@@ -26,7 +26,7 @@ typedef struct Player {
     Color color;
 };
 
-typedef struct Shoot {
+struct Shoot {
     Vector2 position;
     Vector2 speed;
     float radius;
@@ -36,7 +36,7 @@ typedef struct Shoot {
     Color color;
 };
 
-typedef struct Meteor {
+struct Meteor {
     Vector2 position;
     Vector2 speed;
     float radius;
@@ -69,8 +69,7 @@ float Vector2Angle(Vector2 v1, Vector2 v2)
 /// <returns></returns>
 float Vector2Distance(Vector2 v1, Vector2 v2)
 {
-    float result = sqrtf((v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y));
-    return result;
+    return sqrtf((v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y));
 }
 
 /// <summary>
@@ -80,8 +79,7 @@ float Vector2Distance(Vector2 v1, Vector2 v2)
 /// <returns></returns>
 float Vector2Length(Vector2 v)
 {
-    float result = sqrtf((v.x * v.x) + (v.y * v.y));
-    return result;
+    return sqrtf((v.x * v.x) + (v.y * v.y));
 }
 
 /// <summary>
@@ -92,8 +90,7 @@ float Vector2Length(Vector2 v)
 /// <returns></returns>
 Vector2 Vector2Scale(Vector2 v, float scale)
 {
-    Vector2 result = { v.x * scale, v.y * scale };
-    return result;
+    return Vector2{ v.x * scale, v.y * scale };
 }
 
 /// <summary>
@@ -107,8 +104,7 @@ Vector2 Vector2Normalize(Vector2 v)
     if (length <= 0)
         return v;
 
-    Vector2 result = Vector2Scale(v, 1 / length);
-    return result;
+    return Vector2Scale(v, 1 / length);;
 }
 
 /// <summary>
@@ -119,8 +115,7 @@ Vector2 Vector2Normalize(Vector2 v)
 /// <returns></returns>
 Vector2 Vector2Subtract(Vector2 v1, Vector2 v2)
 {
-    Vector2 result = { v1.x - v2.x, v1.y - v2.y };
-    return result;
+    return Vector2{ v1.x - v2.x, v1.y - v2.y };
 }
 
 #pragma endregion
@@ -260,7 +255,7 @@ void UpdateGame()
         if (!pause)
         {
             // Player logic: rotation
-            if (Vector2Length(Vector2Subtract(GetMousePosition(), player.position)) > 30.0f)
+            if (Vector2Length(Vector2Subtract(GetMousePosition(), player.position)) > 100.0f)
             {
                 player.rotation = Vector2Angle(player.position, GetMousePosition()) + 90;
             }
