@@ -11,9 +11,9 @@
 #define PLAYER_MAX_SHIELD   100
 
 #define METEORS_SPEED       2
-#define MAX_BIG_METEORS     4
-#define MAX_MEDIUM_METEORS  8
-#define MAX_SMALL_METEORS   16
+#define MAX_BIG_METEORS     10
+#define MAX_MEDIUM_METEORS  2 * MAX_BIG_METEORS
+#define MAX_SMALL_METEORS   2 * MAX_MEDIUM_METEORS
 
 #pragma endregion
 
@@ -28,62 +28,6 @@ enum class GameState
 
 #pragma endregion
 
-
-#pragma region STRUCTS
-
-struct Player {
-    Texture2D sprite;
-    Vector2 position;
-    Vector2 speed;
-    int shield;
-    float acceleration;
-    float rotation;
-    float radius;
-
-    bool DamageShip()
-    {
-        shield--;
-
-        return shield <= 0;
-    }
-};
-
-struct Shoot {
-    Vector2 position;
-    Vector2 speed;
-    float radius;
-    float rotation;
-    int lifeSpawn;
-    bool active;
-    Color color;
-};
-
-struct Meteor {
-    Texture2D sprite;
-    Vector2 position;
-    Vector2 speed;
-    float rotation;
-    float radius;
-    bool active;
-};
-
-struct Button
-{
-    std::string text;
-    int fontSize;
-    Color textColor;
-    Color normalColor;
-    Color pressColor;
-    Vector2 position;
-    float hMargin;
-    float vMargin;
-    Rectangle rect;
-    bool hover;
-    bool press;
-    bool click;
-};
-
-#pragma endregion
 
 #pragma region VECTOR2 HELPERS
 
@@ -159,6 +103,204 @@ Vector2 Vector2Subtract(Vector2 v1, Vector2 v2)
 
 #pragma endregion
 
+#pragma region STRUCTS
+
+struct Player
+{
+    Texture2D sprite;
+    Vector2 position;
+    Vector2 speed;
+    int shield;
+    float acceleration;
+    float rotation;
+    float radius;
+
+    bool DamageShip()
+    {
+        shield--;
+
+        return shield <= 0;
+    }
+
+    void LookAt(Vector2 pointToLook)
+    {
+        // Player logic: rotation
+        if (Vector2Length(Vector2Subtract(pointToLook, position)) > 40.0f)
+        {
+            rotation = Vector2Angle(position, pointToLook) + 90;
+        }
+    }
+
+    void MoveForward(bool moving)
+    {
+        // Player logic: speed
+        speed.x = sin(rotation * DEG2RAD) * PLAYER_SPEED;
+        speed.y = cos(rotation * DEG2RAD) * PLAYER_SPEED;
+
+        // Player logic: acceleration
+        if (moving)
+        {
+            if (acceleration < 1) acceleration += 0.04f;
+        }
+        else
+        {
+            if (acceleration > 0) acceleration -= 0.02f;
+            else if (acceleration < 0) acceleration = 0;
+        }
+
+        // Player logic: movement
+        position.x += (speed.x * acceleration);
+        position.y -= (speed.y * acceleration);
+    }
+
+    void ScreenLimitsLogic(const int width, const int height)
+    {
+        // Collision logic: player vs walls
+        if (position.x > width + radius) position.x = -radius;
+        else if (position.x < -radius) position.x = width + radius;
+
+        if (position.y > (height + radius)) position.y = -radius;
+        else if (position.y < -radius) position.y = height + radius;
+    }
+
+    void Draw()
+    {
+        // Draw spaceship
+        DrawTexturePro(
+            sprite,
+            Rectangle{ 0,0,(float)sprite.width,(float)sprite.height },
+            Rectangle{ position.x, position.y, (float)sprite.width * 0.3f,(float)sprite.height * 0.3f },
+            Vector2{ ((float)sprite.width * 0.3f) / 2, ((float)sprite.height * 0.3f) / 2 },
+            rotation,
+            WHITE);
+
+        // Draw collision
+    #if _DEBUG
+        DrawCircle(position.x, position.y, 18.0f, Fade(GREEN, 0.5f));
+    #endif // _DEBUG
+    }
+};
+
+struct Shoot
+{
+    Vector2 position;
+    Vector2 speed;
+    float radius;
+    float rotation;
+    int lifeSpawn;
+    bool active;
+    Color color;
+
+    void Draw()
+    {
+        if (active) DrawCircleV(position, radius, color);
+    }
+};
+
+struct Meteor
+{
+    Texture2D sprite;
+    Vector2 position;
+    Vector2 speed;
+    float rotation;
+    float radius;
+    bool active;
+
+    void Movement()
+    {
+        if (active)
+        {
+            // Movement
+            position.x += speed.x;
+            position.y += speed.y;
+        }
+    }
+
+    void ScreenLimitsLogic(const int width, const int height)
+    {
+        if (active)
+        {
+            // Collision logic: meteor vs wall
+            if (position.x > width + radius) position.x = -radius;
+            else if (position.x < 0 - radius) position.x = width + radius;
+            if (position.y > height + radius) position.y = -radius;
+            else if (position.y < 0 - radius) position.y = height + radius;
+        }
+    }
+
+    void Draw()
+    {
+        if (active)
+        {
+            DrawTexturePro(
+                sprite,
+                Rectangle{ 0,0,(float)sprite.width,(float)sprite.height },
+                Rectangle{ position.x, position.y, radius * 3, radius * 3 },
+                Vector2{ (radius * 3) / 2, (radius * 3) / 2 },
+                rotation,
+                WHITE);
+    #if _DEBUG
+            DrawCircleV(position, radius, Fade(RED, 0.5f));
+    #endif // _DEBUG
+        }
+    }
+};
+
+struct Button
+{
+    std::string text = "";
+    int fontSize = 10;
+    Color textColor = WHITE;
+    Color normalColor = BLUE;
+    Color pressColor = DARKBLUE;
+    Vector2 position{ 0,0 };
+    float hMargin = 5;
+    float vMargin = 5;
+    Rectangle rect{ 0,0,0,0 };
+    bool hover = false;
+    bool press = false;
+    bool click = false;
+
+    void MouseCollision()
+    {
+        hover = CheckCollisionPointRec(GetMousePosition(), rect);
+        press = hover && IsMouseButtonDown(0);
+        click = hover && IsMouseButtonReleased(0);
+    }
+
+    void Draw()
+    {
+        rect = Rectangle 
+        {
+            position.x,
+            position.y,
+            hMargin * 2 + MeasureText(text.c_str(), fontSize),
+            vMargin * 2 + fontSize
+        };
+
+        DrawRectangleRounded(rect, 0.5f, 12, press ? pressColor : normalColor);
+        DrawText(text.c_str(), position.x + hMargin, position.y + vMargin, fontSize, textColor);
+    }
+};
+
+struct ProgressBar
+{
+    Vector2 position { 0, 0 };
+    float width = 300;
+    float height = 10;
+    Color front = BLUE;
+    Color back = DARKBLUE;
+
+    void Draw(float value = 1.0f)
+    {
+        // Shield Bar
+        DrawRectangleRoundedLines(Rectangle{ position.x,position.y, width, height }, 1, 12, 5, back);
+        DrawRectangleRounded(Rectangle{ position.x, position.y, value * width, height }, 1, 12, front);
+    }
+};
+
+#pragma endregion
+
 #pragma region GLOBAL VARIABLES
 
 static const int screenWidth = 800;
@@ -182,7 +324,8 @@ static int midMeteorsCount = 0;
 static int smallMeteorsCount = 0;
 static int destroyedMeteorsCount = 0;
 
-// Main menu buttons
+// HUD
+static ProgressBar shieldBar;
 static Button playButton;
 
 #pragma endregion
@@ -206,6 +349,27 @@ void InitGame()
     player.rotation = 0;
     player.radius = shipRadius;
     player.shield = PLAYER_MAX_SHIELD;
+
+#pragma region HUD and Main Menu
+
+    // Initialice menu buttons
+    playButton.text = "PLAY";
+    playButton.fontSize = 40;
+    playButton.textColor = WHITE;
+    playButton.normalColor = BLUE;
+    playButton.pressColor = SKYBLUE;
+    playButton.position = Vector2{ (float)GetScreenWidth() * 0.4f, (float)GetScreenHeight() * 0.4f };
+    playButton.hMargin = 10;
+    playButton.vMargin = 10;
+
+    // Initialization Shield bar
+    shieldBar.position = Vector2{ 10,10 };
+    shieldBar.width = 300;
+    shieldBar.height = 10;
+    shieldBar.front = BLUE;
+    shieldBar.back = DARKBLUE;
+
+#pragma endregion
 
     destroyedMeteorsCount = 0;
 
@@ -297,50 +461,29 @@ void UpdateGame()
     case GameState::MainMenu:
 
         // Play button behaviour
-        playButton.hover = CheckCollisionPointRec(GetMousePosition(), playButton.rect);
-        playButton.press = playButton.hover && IsMouseButtonDown(0);
-        playButton.click = playButton.hover && IsMouseButtonReleased(0);
+        playButton.MouseCollision();
+
+        if (playButton.click)
+        {
+            // TODO modificar como funcionan los meteoros
+            InitGame();
+            gameState = GameState::Gameplay;
+        }
 
         break;
     case GameState::Gameplay:
 
         if (!gameOver)
         {
-
             if (IsKeyPressed('P')) pause = !pause;
 
             if (!pause)
             {
-                // Player logic: rotation
-                if (Vector2Length(Vector2Subtract(GetMousePosition(), player.position)) > 40.0f)
-                {
-                    player.rotation = Vector2Angle(player.position, GetMousePosition()) + 90;
-                }
+                player.LookAt(GetMousePosition());
 
-                // Player logic: speed
-                player.speed.x = sin(player.rotation * DEG2RAD) * PLAYER_SPEED;
-                player.speed.y = cos(player.rotation * DEG2RAD) * PLAYER_SPEED;
+                player.MoveForward(IsMouseButtonDown(1));
 
-                // Player logic: acceleration
-                if (IsMouseButtonDown(1))
-                {
-                    if (player.acceleration < 1) player.acceleration += 0.04f;
-                }
-                else
-                {
-                    if (player.acceleration > 0) player.acceleration -= 0.02f;
-                    else if (player.acceleration < 0) player.acceleration = 0;
-                }
-
-                // Player logic: movement
-                player.position.x += (player.speed.x * player.acceleration);
-                player.position.y -= (player.speed.y * player.acceleration);
-
-                // Collision logic: player vs walls
-                if (player.position.x > screenWidth + shipRadius) player.position.x = -(shipRadius);
-                else if (player.position.x < -(shipRadius)) player.position.x = screenWidth + shipRadius;
-                if (player.position.y > (screenHeight + shipRadius)) player.position.y = -(shipRadius);
-                else if (player.position.y < -(shipRadius)) player.position.y = screenHeight + shipRadius;
+                player.ScreenLimitsLogic(screenWidth, screenHeight);
 
                 // Player shoot logic
                 if (IsMouseButtonPressed(0))
@@ -411,7 +554,6 @@ void UpdateGame()
                 {
                     if (CheckCollisionCircles(player.position, player.radius, bigMeteor[a].position, bigMeteor[a].radius) && bigMeteor[a].active)
                     {
-
                         gameOver = player.DamageShip();
                     }
                 }
@@ -435,52 +577,22 @@ void UpdateGame()
                 // Meteors logic: big meteors
                 for (int i = 0; i < MAX_BIG_METEORS; i++)
                 {
-                    if (bigMeteor[i].active)
-                    {
-                        // Movement
-                        bigMeteor[i].position.x += bigMeteor[i].speed.x;
-                        bigMeteor[i].position.y += bigMeteor[i].speed.y;
-
-                        // Collision logic: meteor vs wall
-                        if (bigMeteor[i].position.x > screenWidth + bigMeteor[i].radius) bigMeteor[i].position.x = -(bigMeteor[i].radius);
-                        else if (bigMeteor[i].position.x < 0 - bigMeteor[i].radius) bigMeteor[i].position.x = screenWidth + bigMeteor[i].radius;
-                        if (bigMeteor[i].position.y > screenHeight + bigMeteor[i].radius) bigMeteor[i].position.y = -(bigMeteor[i].radius);
-                        else if (bigMeteor[i].position.y < 0 - bigMeteor[i].radius) bigMeteor[i].position.y = screenHeight + bigMeteor[i].radius;
-                    }
+                    bigMeteor[i].Movement();
+                    bigMeteor[i].ScreenLimitsLogic(screenWidth, screenHeight);
                 }
 
                 // Meteors logic: medium meteors
                 for (int i = 0; i < MAX_MEDIUM_METEORS; i++)
                 {
-                    if (mediumMeteor[i].active)
-                    {
-                        // Movement
-                        mediumMeteor[i].position.x += mediumMeteor[i].speed.x;
-                        mediumMeteor[i].position.y += mediumMeteor[i].speed.y;
-
-                        // Collision logic: meteor vs wall
-                        if (mediumMeteor[i].position.x > screenWidth + mediumMeteor[i].radius) mediumMeteor[i].position.x = -(mediumMeteor[i].radius);
-                        else if (mediumMeteor[i].position.x < 0 - mediumMeteor[i].radius) mediumMeteor[i].position.x = screenWidth + mediumMeteor[i].radius;
-                        if (mediumMeteor[i].position.y > screenHeight + mediumMeteor[i].radius) mediumMeteor[i].position.y = -(mediumMeteor[i].radius);
-                        else if (mediumMeteor[i].position.y < 0 - mediumMeteor[i].radius) mediumMeteor[i].position.y = screenHeight + mediumMeteor[i].radius;
-                    }
+                    mediumMeteor[i].Movement();
+                    mediumMeteor[i].ScreenLimitsLogic(screenWidth, screenHeight);
                 }
 
                 // Meteors logic: small meteors
                 for (int i = 0; i < MAX_SMALL_METEORS; i++)
                 {
-                    if (smallMeteor[i].active)
-                    {
-                        // Movement
-                        smallMeteor[i].position.x += smallMeteor[i].speed.x;
-                        smallMeteor[i].position.y += smallMeteor[i].speed.y;
-
-                        // Collision logic: meteor vs wall
-                        if (smallMeteor[i].position.x > screenWidth + smallMeteor[i].radius) smallMeteor[i].position.x = -(smallMeteor[i].radius);
-                        else if (smallMeteor[i].position.x < 0 - smallMeteor[i].radius) smallMeteor[i].position.x = screenWidth + smallMeteor[i].radius;
-                        if (smallMeteor[i].position.y > screenHeight + smallMeteor[i].radius) smallMeteor[i].position.y = -(smallMeteor[i].radius);
-                        else if (smallMeteor[i].position.y < 0 - smallMeteor[i].radius) smallMeteor[i].position.y = screenHeight + smallMeteor[i].radius;
-                    }
+                    smallMeteor[i].Movement();
+                    smallMeteor[i].ScreenLimitsLogic(screenWidth, screenHeight);
                 }
 
                 // Collision logic: player-shoots vs meteors
@@ -572,8 +684,6 @@ void UpdateGame()
         // TODO result logic
         break;
     }
-
-    
 }
 
 // Draw game (one frame)
@@ -587,103 +697,52 @@ void DrawGame()
     {
     case GameState::MainMenu:
 
-        playButton.text = "PLAY ";
-        playButton.fontSize = 20;
+        DrawText("Asteroid XD", GetScreenWidth() / 2 - MeasureText("Asteroid XD", 40) / 2, GetScreenHeight() * 0.15f, 40, WHITE);
+        DrawText("Created by Matias Galarza (art from Kenney)", GetScreenWidth() * 0.01f, GetScreenHeight() - 15, 15, GRAY);
+
+        playButton.text = "PLAY";
+        playButton.fontSize = 40;
         playButton.textColor = WHITE;
         playButton.normalColor = BLUE;
         playButton.pressColor = SKYBLUE;
-        playButton.position = Vector2{ (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
+        playButton.position = Vector2{ (float)GetScreenWidth() * 0.4f, (float)GetScreenHeight() * 0.4f };
         playButton.hMargin = 10;
         playButton.vMargin = 10;
-        playButton.rect = Rectangle{ playButton.position.x , playButton.position.y, playButton.hMargin * 2 + MeasureText(playButton.text.c_str(), 20), playButton.vMargin * 2 + 20 };
-       
-        DrawRectangleRounded(playButton.rect, 0.5f, 12, playButton.press ? playButton.pressColor : playButton.normalColor);
+
+        playButton.Draw();
 
         break;
 
     case GameState::Gameplay:
         if (!gameOver)
         {
-            // Draw spaceship
-            DrawTexturePro(
-                player.sprite,
-                Rectangle{ 0,0,(float)player.sprite.width,(float)player.sprite.height },
-                Rectangle{ player.position.x, player.position.y, (float)player.sprite.width * 0.3f,(float)player.sprite.height * 0.3f },
-                Vector2{ ((float)player.sprite.width * 0.3f) / 2, ((float)player.sprite.height * 0.3f) / 2 },
-                player.rotation,
-                WHITE);
 
-            // Draw collision
-#if _DEBUG
-            DrawCircle(player.position.x, player.position.y, 18.0f, Fade(GREEN, 0.5f));
-#endif // _DEBUG
-
+            player.Draw();
 
             // Draw meteors
             for (int i = 0; i < MAX_BIG_METEORS; i++)
             {
-                if (bigMeteor[i].active)
-                {
-                    DrawTexturePro(
-                        bigMeteor[i].sprite,
-                        Rectangle{ 0,0,(float)bigMeteor[i].sprite.width,(float)bigMeteor[i].sprite.height },
-                        Rectangle{ bigMeteor[i].position.x, bigMeteor[i].position.y, (float)bigMeteor[i].sprite.width * 0.9f,(float)bigMeteor[i].sprite.height * 0.9f },
-                        Vector2{ ((float)bigMeteor[i].sprite.width * 0.9f) / 2, ((float)bigMeteor[i].sprite.height * 0.9f) / 2 },
-                        bigMeteor[i].rotation,
-                        WHITE);
-#if _DEBUG
-                    DrawCircleV(bigMeteor[i].position, bigMeteor[i].radius, Fade(RED, 0.5f));
-#endif // _DEBUG
-                }
+                bigMeteor[i].Draw();
             }
 
             for (int i = 0; i < MAX_MEDIUM_METEORS; i++)
             {
-                if (mediumMeteor[i].active)
-                {
-
-                    DrawTexturePro(
-                        mediumMeteor[i].sprite,
-                        Rectangle{ 0,0,(float)mediumMeteor[i].sprite.width,(float)mediumMeteor[i].sprite.height },
-                        Rectangle{ mediumMeteor[i].position.x, mediumMeteor[i].position.y, (float)mediumMeteor[i].sprite.width * 0.45f,(float)mediumMeteor[i].sprite.height * 0.45f },
-                        Vector2{ ((float)mediumMeteor[i].sprite.width * 0.45f) / 2, ((float)mediumMeteor[i].sprite.height * 0.45f) / 2 },
-                        mediumMeteor[i].rotation,
-                        WHITE);
-
-#if _DEBUG
-                    DrawCircleV(mediumMeteor[i].position, mediumMeteor[i].radius, Fade(RED, 0.5f));
-#endif // _DEBUG
-                }
+                mediumMeteor[i].Draw();
             }
 
             for (int i = 0; i < MAX_SMALL_METEORS; i++)
             {
-                if (smallMeteor[i].active)
-                {
-
-                    DrawTexturePro(
-                        smallMeteor[i].sprite,
-                        Rectangle{ 0,0,(float)smallMeteor[i].sprite.width,(float)smallMeteor[i].sprite.height },
-                        Rectangle{ smallMeteor[i].position.x, smallMeteor[i].position.y, (float)smallMeteor[i].sprite.width * 0.25f,(float)smallMeteor[i].sprite.height * 0.25f },
-                        Vector2{ ((float)smallMeteor[i].sprite.width * 0.25f) / 2, ((float)smallMeteor[i].sprite.height * 0.25f) / 2 },
-                        smallMeteor[i].rotation,
-                        WHITE);
-
-#if _DEBUG
-                    DrawCircleV(smallMeteor[i].position, smallMeteor[i].radius, Fade(RED, 0.5f));
-#endif // _DEBUG
-                }
+                smallMeteor[i].Draw();
             }
 
             // Draw shoot
             for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
             {
-                if (shoot[i].active) DrawCircleV(shoot[i].position, shoot[i].radius, WHITE);
+                shoot[i].Draw();
             }
 
             // Shield Bar
-            DrawRectangleRoundedLines(Rectangle{ 10,10,300,20 }, 1, 12, 5, DARKBLUE);
-            DrawRectangleRounded(Rectangle{ 10,10, ((float)player.shield / PLAYER_MAX_SHIELD) * 300,20 }, 1, 12, SKYBLUE);
+            shieldBar.Draw((float)player.shield / PLAYER_MAX_SHIELD);
 
             if (victory) DrawText("VICTORY", screenWidth / 2 - MeasureText("VICTORY", 20) / 2, screenHeight / 2, 20, LIGHTGRAY);
 
