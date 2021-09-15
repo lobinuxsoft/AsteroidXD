@@ -1,16 +1,16 @@
 #include "GameManager.h"
 #include "raylib.h"
-#include <cmath>
 #include <string>
+#include "../Class/Ship.h"
 
 #pragma region DEFINES
 
 #define PLAYER_BASE_SIZE    18.0f
-#define PLAYER_SPEED        6.0f
+#define PLAYER_SPEED        150.0f
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_SHIELD   100
 
-#define METEORS_SPEED       2
+#define METEORS_SPEED       150.0f
 #define MAX_BIG_METEORS     10
 #define MAX_MEDIUM_METEORS  2 * MAX_BIG_METEORS
 #define MAX_SMALL_METEORS   2 * MAX_MEDIUM_METEORS
@@ -22,164 +22,14 @@
 enum class GameState
 {
     MainMenu,
+    Credits,
     Gameplay,
     Result
 };
 
 #pragma endregion
 
-
-#pragma region VECTOR2 HELPERS
-
-/// <summary>
-/// Angulo que se genera con 2 vetores
-/// </summary>
-/// <param name="v1"></param>
-/// <param name="v2"></param>
-/// <returns></returns>
-float Vector2Angle(Vector2 v1, Vector2 v2)
-{
-    float result = atan2f(v2.y - v1.y, v2.x - v1.x) * (180.0f / PI);
-    if (result < 0) result += 360.0f;
-    return result;
-}
-
-/// <summary>
-/// Calcula la distancia entre 2 vectores
-/// </summary>
-/// <param name="v1"></param>
-/// <param name="v2"></param>
-/// <returns></returns>
-float Vector2Distance(Vector2 v1, Vector2 v2)
-{
-    return sqrtf((v1.x - v2.x) * (v1.x - v2.x) + (v1.y - v2.y) * (v1.y - v2.y));
-}
-
-/// <summary>
-/// El largo del vector o la magnitud
-/// </summary>
-/// <param name="v"></param>
-/// <returns></returns>
-float Vector2Length(Vector2 v)
-{
-    return sqrtf((v.x * v.x) + (v.y * v.y));
-}
-
-/// <summary>
-/// Escalar el vector
-/// </summary>
-/// <param name="v"></param>
-/// <param name="scale"></param>
-/// <returns></returns>
-Vector2 Vector2Scale(Vector2 v, float scale)
-{
-    return Vector2{ v.x * scale, v.y * scale };
-}
-
-/// <summary>
-/// Normalizar el vector
-/// </summary>
-/// <param name="v"></param>
-/// <returns></returns>
-Vector2 Vector2Normalize(Vector2 v)
-{
-    float length = Vector2Length(v);
-    if (length <= 0)
-        return v;
-
-    return Vector2Scale(v, 1 / length);;
-}
-
-/// <summary>
-/// Resta entre 2 vectores
-/// </summary>
-/// <param name="v1"></param>
-/// <param name="v2"></param>
-/// <returns></returns>
-Vector2 Vector2Subtract(Vector2 v1, Vector2 v2)
-{
-    return Vector2{ v1.x - v2.x, v1.y - v2.y };
-}
-
-#pragma endregion
-
 #pragma region STRUCTS
-
-struct Player
-{
-    Texture2D sprite;
-    Vector2 position;
-    Vector2 speed;
-    int shield;
-    float acceleration;
-    float rotation;
-    float radius;
-
-    bool DamageShip()
-    {
-        shield--;
-
-        return shield <= 0;
-    }
-
-    void LookAt(Vector2 pointToLook)
-    {
-        // Player logic: rotation
-        if (Vector2Length(Vector2Subtract(pointToLook, position)) > 40.0f)
-        {
-            rotation = Vector2Angle(position, pointToLook) + 90;
-        }
-    }
-
-    void MoveForward(bool moving)
-    {
-        // Player logic: speed
-        speed.x = sin(rotation * DEG2RAD) * PLAYER_SPEED;
-        speed.y = cos(rotation * DEG2RAD) * PLAYER_SPEED;
-
-        // Player logic: acceleration
-        if (moving)
-        {
-            if (acceleration < 1) acceleration += 0.04f;
-        }
-        else
-        {
-            if (acceleration > 0) acceleration -= 0.02f;
-            else if (acceleration < 0) acceleration = 0;
-        }
-
-        // Player logic: movement
-        position.x += (speed.x * acceleration);
-        position.y -= (speed.y * acceleration);
-    }
-
-    void ScreenLimitsLogic(const int width, const int height)
-    {
-        // Collision logic: player vs walls
-        if (position.x > width + radius) position.x = -radius;
-        else if (position.x < -radius) position.x = width + radius;
-
-        if (position.y > (height + radius)) position.y = -radius;
-        else if (position.y < -radius) position.y = height + radius;
-    }
-
-    void Draw()
-    {
-        // Draw spaceship
-        DrawTexturePro(
-            sprite,
-            Rectangle{ 0,0,(float)sprite.width,(float)sprite.height },
-            Rectangle{ position.x, position.y, (float)sprite.width * 0.3f,(float)sprite.height * 0.3f },
-            Vector2{ ((float)sprite.width * 0.3f) / 2, ((float)sprite.height * 0.3f) / 2 },
-            rotation,
-            WHITE);
-
-        // Draw collision
-    #if _DEBUG
-        DrawCircle(position.x, position.y, 18.0f, Fade(GREEN, 0.5f));
-    #endif // _DEBUG
-    }
-};
 
 struct Shoot
 {
@@ -211,8 +61,8 @@ struct Meteor
         if (active)
         {
             // Movement
-            position.x += speed.x;
-            position.y += speed.y;
+            position.x += speed.x * GetFrameTime();
+            position.y += speed.y * GetFrameTime();
         }
     }
 
@@ -314,7 +164,7 @@ static bool victory = false;
 // Gameplay objects
 static float shipRadius = 0;
 
-static Player player;
+static Ship *player;
 static Shoot shoot[PLAYER_MAX_SHOOTS];
 static Meteor bigMeteor[MAX_BIG_METEORS];
 static Meteor mediumMeteor[MAX_MEDIUM_METEORS];
@@ -342,13 +192,15 @@ void InitGame()
     shipRadius = PLAYER_BASE_SIZE;
 
     // Initialization player
-    player.sprite = LoadTexture("resources/images/ship_G.png");
-    player.position = Vector2{ screenWidth / 2 - shipRadius / 2, screenHeight / 2 - shipRadius / 2 };
-    player.speed = Vector2{ 0, 0 };
-    player.acceleration = 0;
-    player.rotation = 0;
-    player.radius = shipRadius;
-    player.shield = PLAYER_MAX_SHIELD;
+    if(player == nullptr)
+    {
+        player = new Ship(Vector2{ screenWidth / 2 - shipRadius / 2, screenHeight / 2 - shipRadius / 2 },"resources/images/ship_G.png", PLAYER_SPEED, PLAYER_MAX_SHIELD, shipRadius);
+    }
+    else
+    {
+        player->setPosition(Vector2{ screenWidth / 2 - shipRadius / 2, screenHeight / 2 - shipRadius / 2 });
+        player->setShield(PLAYER_MAX_SHIELD);
+    }
 
 #pragma region HUD and Main Menu
 
@@ -479,11 +331,8 @@ void UpdateGame()
 
             if (!pause)
             {
-                player.LookAt(GetMousePosition());
-
-                player.MoveForward(IsMouseButtonDown(1));
-
-                player.ScreenLimitsLogic(screenWidth, screenHeight);
+                player->update();
+                player->screenLimitsLogic(screenWidth, screenHeight);
 
                 // Player shoot logic
                 if (IsMouseButtonPressed(0))
@@ -492,11 +341,16 @@ void UpdateGame()
                     {
                         if (!shoot[i].active)
                         {
-                            shoot[i].position = Vector2{ player.position.x + (float)sin(player.rotation * DEG2RAD) * (shipRadius), player.position.y - (float)cos(player.rotation * DEG2RAD) * (shipRadius) };
+                            shoot[i].position = Vector2
+                            { 
+                                player->getPosition().x + (float)sin(player->getRotation() * DEG2RAD) * player->getRadius(), 
+                                player->getPosition().y - (float)cos(player->getRotation() * DEG2RAD) * player->getRadius()
+                            };
+
                             shoot[i].active = true;
-                            shoot[i].speed.x = 1.5 * sin(player.rotation * DEG2RAD) * PLAYER_SPEED;
-                            shoot[i].speed.y = 1.5 * cos(player.rotation * DEG2RAD) * PLAYER_SPEED;
-                            shoot[i].rotation = player.rotation;
+                            shoot[i].speed.x = 1.5 * sin(player->getRotation() * DEG2RAD) * PLAYER_SPEED * GetFrameTime();
+                            shoot[i].speed.y = 1.5 * cos(player->getRotation() * DEG2RAD) * PLAYER_SPEED * GetFrameTime();
+                            shoot[i].rotation = player->getRotation();
                             break;
                         }
                     }
@@ -552,25 +406,25 @@ void UpdateGame()
 
                 for (int a = 0; a < MAX_BIG_METEORS; a++)
                 {
-                    if (CheckCollisionCircles(player.position, player.radius, bigMeteor[a].position, bigMeteor[a].radius) && bigMeteor[a].active)
+                    if (CheckCollisionCircles(player->getPosition(), player->getRadius(), bigMeteor[a].position, bigMeteor[a].radius) && bigMeteor[a].active)
                     {
-                        gameOver = player.DamageShip();
+                        gameOver = player->damageShip(bigMeteor[a].position);
                     }
                 }
 
                 for (int a = 0; a < MAX_MEDIUM_METEORS; a++)
                 {
-                    if (CheckCollisionCircles(player.position, player.radius, mediumMeteor[a].position, mediumMeteor[a].radius) && mediumMeteor[a].active)
+                    if (CheckCollisionCircles(player->getPosition(), player->getRadius(), mediumMeteor[a].position, mediumMeteor[a].radius) && mediumMeteor[a].active)
                     {
-                        gameOver = player.DamageShip();
+                        gameOver = player->damageShip(mediumMeteor[a].position);
                     }
                 }
 
                 for (int a = 0; a < MAX_SMALL_METEORS; a++)
                 {
-                    if (CheckCollisionCircles(player.position, player.radius, smallMeteor[a].position, smallMeteor[a].radius) && smallMeteor[a].active)
+                    if (CheckCollisionCircles(player->getPosition(), player->getRadius(), smallMeteor[a].position, smallMeteor[a].radius) && smallMeteor[a].active)
                     {
-                        gameOver = player.DamageShip();
+                        gameOver = player->damageShip(smallMeteor[a].position);
                     }
                 }
 
@@ -717,7 +571,7 @@ void DrawGame()
         if (!gameOver)
         {
 
-            player.Draw();
+            player->draw();
 
             // Draw meteors
             for (int i = 0; i < MAX_BIG_METEORS; i++)
@@ -742,7 +596,7 @@ void DrawGame()
             }
 
             // Shield Bar
-            shieldBar.Draw((float)player.shield / PLAYER_MAX_SHIELD);
+            shieldBar.Draw((float)player->getShield() / PLAYER_MAX_SHIELD);
 
             if (victory) DrawText("VICTORY", screenWidth / 2 - MeasureText("VICTORY", 20) / 2, screenHeight / 2, 20, LIGHTGRAY);
 
@@ -764,7 +618,7 @@ void DrawGame()
 // Unload game variables
 void UnloadGame()
 {
-    UnloadTexture(player.sprite);
+    delete player;
 
     for (int i = 0; i < MAX_BIG_METEORS; i++)
     {
