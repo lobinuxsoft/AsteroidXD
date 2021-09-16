@@ -9,6 +9,7 @@ protected:
 public:
 	Entity(Vector2 position);
 	void setPosition(Vector2 position);
+	Vector2 getPosition();
 	virtual void draw() = 0;
 };
 

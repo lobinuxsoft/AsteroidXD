@@ -90,16 +90,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Class\Ship.cpp" />
+    <ClCompile Include="src\Class\UIObjects\ProgressBar.cpp" />
+    <ClCompile Include="src\Class\UIObjects\Button.cpp" />
+    <ClCompile Include="src\Class\GameObjects\Shoot.cpp" />
+    <ClCompile Include="src\Class\GameObjects\Meteor.cpp" />
+    <ClCompile Include="src\Class\GameObjects\Ship.cpp" />
     <ClCompile Include="src\Class\Entity.cpp" />
     <ClCompile Include="src\Core\GameManager.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Utils\Vector2Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Class\Ship.h" />
+    <ClInclude Include="src\Class\UIObjects\ProgressBar.h" />
+    <ClInclude Include="src\Class\UIObjects\Button.h" />
+    <ClInclude Include="src\Class\GameObjects\Shoot.h" />
+    <ClInclude Include="src\Class\GameObjects\Meteor.h" />
+    <ClInclude Include="src\Class\GameObjects\Ship.h" />
     <ClInclude Include="src\Class\Entity.h" />
     <ClInclude Include="src\Core\GameManager.h" />
-    <ClInclude Include="src\Core\GameStructs.h" />
     <ClInclude Include="src\Utils\Vector2Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

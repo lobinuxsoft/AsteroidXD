@@ -18,11 +18,11 @@ void Ship::moveForward()
         speed.x = sin(rotation * DEG2RAD) * maxSpeed;
         speed.y = cos(rotation * DEG2RAD) * maxSpeed;
 
-        if (acceleration < 1) acceleration += 0.04f;
+        if (acceleration < 1) acceleration += 0.6f * GetFrameTime();
     }
     else
     {
-        if (acceleration > 0) acceleration -= 0.005f;
+        if (acceleration > 0) acceleration -= 0.15f * GetFrameTime();
         else if (acceleration < 0) acceleration = 0;
     }
 
@@ -42,11 +42,6 @@ Ship::Ship(Vector2 position, const char spriteUrl[], float maxSpeed, int shield,
 Ship::~Ship()
 {
     UnloadTexture(sprite);
-}
-
-Vector2 Ship::getPosition()
-{
-    return this->position;
 }
 
 float Ship::getRotation()
@@ -76,25 +71,27 @@ bool Ship::damageShip(Vector2 hitPos)
 	color = RED;
 
 	position = Vector2Add(position, Vector2Scale(Vector2Normalize(pushDir), radius));
+    speed = Vector2Scale(Vector2Normalize(pushDir), maxSpeed);
 	shield--;
 
 	return shield <= 0;
 }
 
-void Ship::screenLimitsLogic(const int width, const int height)
+void Ship::screenLimitsLogic()
 {
     // Collision logic: player vs walls
-    if (position.x > width + radius) position.x = -radius;
-    else if (position.x < -radius) position.x = width + radius;
+    if (position.x > GetScreenWidth() + radius) position.x = -radius;
+    else if (position.x < -radius) position.x = GetScreenWidth() + radius;
 
-    if (position.y > (height + radius)) position.y = -radius;
-    else if (position.y < -radius) position.y = height + radius;
+    if (position.y > (GetScreenHeight() + radius)) position.y = -radius;
+    else if (position.y < -radius) position.y = GetScreenHeight() + radius;
 }
 
 void Ship::update()
 {
     lookAtMousePoint();
     moveForward();
+    screenLimitsLogic();
 }
 
 void Ship::draw()

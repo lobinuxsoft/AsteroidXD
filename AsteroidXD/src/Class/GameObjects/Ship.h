@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity.h"
+#include "../Entity.h"
 
 class Ship : public Entity
 {
@@ -17,17 +17,16 @@ private:
 private:
     void lookAtMousePoint();
     void moveForward();
+    void screenLimitsLogic();
 
 public:
     Ship(Vector2 position, const char spriteUrl[],float maxSpeed, int shield, float radius);
     ~Ship();
-    Vector2 getPosition();
     float getRotation();
     float getRadius();
     int getShield();
     void setShield(int shield);
     bool damageShip(Vector2 hitPos = { 0,0 });
-    void screenLimitsLogic(const int width, const int height);
     void update();
     void draw() override;
 };

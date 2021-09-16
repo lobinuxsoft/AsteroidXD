@@ -1,0 +1,29 @@
+#pragma once
+#include "../Entity.h"
+
+class Meteor : public Entity
+{
+private:
+	Texture2D sprite;
+	Vector2 speed;
+	float maxSpeed;
+	float rotation;
+	float radius;
+	bool active;
+
+private:
+	void movement();
+	void screenLimitsLogic();
+
+public:
+	Meteor(Vector2 position, const char spriteUrl[], Vector2 speed, float maxSpeed, float rotation, float radius, bool active);
+	~Meteor();
+	float getRadius();
+	bool getActive();
+	void setActive(bool active);
+	void setSpeed(Vector2 speed);
+	void setSpeedByAngle(float angle, bool inverseDir = false);
+	void update();
+	void draw() override;
+};
+
