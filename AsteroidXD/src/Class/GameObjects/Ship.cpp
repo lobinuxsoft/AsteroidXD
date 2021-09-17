@@ -6,6 +6,7 @@ void Ship::lookAtMousePoint()
 	if (Vector2Length(Vector2Subtract(GetMousePosition(), position)) > 40.0f)
 	{
 		rotation = Vector2Angle(position, GetMousePosition()) + 90;
+        dir = Vector2Normalize(Vector2Subtract(GetMousePosition(), position));
 	}
 }
 
@@ -15,29 +16,26 @@ void Ship::moveForward()
     if (IsMouseButtonDown(1))
     {
         // Player logic: speed
-        speed.x = sin(rotation * DEG2RAD) * maxSpeed;
-        speed.y = cos(rotation * DEG2RAD) * maxSpeed;
+        speed.x = dir.x;
+        speed.y = -dir.y;
 
-        if (acceleration < 1) acceleration += 0.6f * GetFrameTime();
+        velocity = Vector2Add(velocity, { (speed.x * acceleration) * GetFrameTime(), (speed.y * acceleration) * GetFrameTime() });
+
+        if (acceleration < 1) acceleration += maxAcceleration * GetFrameTime();
     }
     else
     {
-        if (acceleration > 0) acceleration -= 0.15f * GetFrameTime();
-        else if (acceleration < 0) acceleration = 0;
+        acceleration = 0;
     }
 
+    velocity = { Clamp(velocity.x, -maxVelocity, maxVelocity), Clamp(velocity.y, -maxVelocity, maxVelocity) };
+
     // Player logic: movement
-    position.x += (speed.x * acceleration) * GetFrameTime();
-    position.y -= (speed.y * acceleration) * GetFrameTime();
+    position.x += velocity.x;
+    position.y -= velocity.y;
 }
 
-Ship::Ship(Vector2 position, const char spriteUrl[], float maxSpeed, int shield, float radius) : Entity{ position }
-{
-	this->sprite = LoadTexture(spriteUrl);
-    this->maxSpeed = maxSpeed;
-	this->shield = shield;
-	this->radius = radius;
-}
+Ship::Ship(Vector2 position, const char spriteUrl[]) : Entity{ position }, sprite(LoadTexture(spriteUrl)) { }
 
 Ship::~Ship()
 {
@@ -59,9 +57,22 @@ int Ship::getShield()
     return shield;
 }
 
-void Ship::setShield(int shield)
+int Ship::getMaxShield()
 {
-    this->shield = shield;
+    return maxShield;
+}
+
+void Ship::resetState()
+{
+    velocity = { 0,0 };
+    speed = { 0,0 };
+    acceleration = 0;
+    shield = maxShield;
+}
+
+float Ship::getMaxSpeed()
+{
+    return maxAcceleration;
 }
 
 bool Ship::damageShip(Vector2 hitPos)
@@ -70,8 +81,8 @@ bool Ship::damageShip(Vector2 hitPos)
 	timer = 0.5f;
 	color = RED;
 
-	position = Vector2Add(position, Vector2Scale(Vector2Normalize(pushDir), radius));
-    speed = Vector2Scale(Vector2Normalize(pushDir), maxSpeed);
+    velocity.x += Vector2Normalize(pushDir).x;
+    velocity.y -= Vector2Normalize(pushDir).y;
 	shield--;
 
 	return shield <= 0;
@@ -117,5 +128,7 @@ void Ship::draw()
     // Draw collision
 #if _DEBUG
     DrawCircle(position.x, position.y, 18.0f, Fade(GREEN, 0.5f));
+    DrawText(TextFormat("Dir (%02.02f,%02.02f)", dir.x, dir.y), 10, GetScreenHeight() * 0.4f, 20, WHITE);
+    DrawText(TextFormat("Velocity (%02.02f,%02.02f)", velocity.x, velocity.y), 10, GetScreenHeight() * 0.5f, 20, WHITE);
 #endif // _DEBUG
 }

@@ -2,20 +2,22 @@
 #include "raylib.h"
 #include <string>
 #include <vector>
-#include "../Class/GameObjects/Ship.h"
-#include "../Class/GameObjects/Meteor.h"
-#include "../Class/GameObjects/Shoot.h"
-#include "../Class/UIObjects/Button.h"
-#include "../Class/UIObjects/ProgressBar.h"
+#include "Class/GameObjects/Ship.h"
+#include "Class/GameObjects/Meteor.h"
+#include "Class/GameObjects/Shoot.h"
+#include "Class/UIObjects/Button.h"
+#include "Class/UIObjects/ProgressBar.h"
 
-#pragma region DEFINES
+#pragma region CONSTANT VARIABLES
 
-#define PLAYER_BASE_SIZE    18.0f
-#define PLAYER_SPEED        150.0f
-#define PLAYER_MAX_SHOOTS   10
-#define PLAYER_MAX_SHIELD   100
+static const int screenWidth = 800;
+static const int screenHeight = 450;
 
-#define METEORS_SPEED       150.0f
+static const int shipMaxShoots = 10;
+static const int shipMaxShield = 100;
+static const float shipRadius = 18.0f;
+
+static const float meteorsSpeed = 150.0f;
 
 #pragma endregion
 
@@ -24,37 +26,14 @@
 enum class GameState
 {
     MainMenu,
-    Credits,
     Gameplay,
-    Result
+    Credits
 };
 
 #pragma endregion
 
-//#pragma region STRUCTS
-//
-//struct ProgressBar
-//{
-//    Vector2 position { 0, 0 };
-//    float width = 300;
-//    float height = 10;
-//    Color front = BLUE;
-//    Color back = DARKBLUE;
-//
-//    void Draw(float value = 1.0f)
-//    {
-//        // Shield Bar
-//        DrawRectangleRoundedLines(Rectangle{ position.x,position.y, width, height }, 1, 12, 5, back);
-//        DrawRectangleRounded(Rectangle{ position.x, position.y, value * width, height }, 1, 12, front);
-//    }
-//};
-//
-//#pragma endregion
 
 #pragma region GLOBAL VARIABLES
-
-static const int screenWidth = 800;
-static const int screenHeight = 450;
 
 static GameState gameState = GameState::MainMenu;
 static bool gameOver = false;
@@ -62,31 +41,41 @@ static bool pause = false;
 static bool victory = false;
 
 // Gameplay objects
-static float shipRadius = 0;
-
+// Player Ship and shoots---------------------------
 static Ship *player;
 static std::vector<Shoot*> shoot;
+//--------------------------------------------------
+
+// Meteors------------------------------------------
 static std::vector<Meteor*> bigMeteor;
 static std::vector<Meteor*> mediumMeteor;
 static std::vector<Meteor*> smallMeteor;
 
+static int maxBigMeteors = 4;
+static int maxMediumMeteors = maxBigMeteors * 2;
+static int maxSmallMeteors = maxMediumMeteors * 2;
+
 static int midMeteorsCount = 0;
 static int smallMeteorsCount = 0;
 static int destroyedMeteorsCount = 0;
+//-------------------------------------------------
 
 // HUD
-static ProgressBar *shieldBar;
-static Button *playButton;
+// Main menu---------------------------------------
+static Button* playButton;
+//-------------------------------------------------
 
-// Meteors
-int maxBigMeteors = 4;
-int maxMediumMeteors = maxBigMeteors * 2;
-int maxSmallMeteors = maxMediumMeteors * 2;
+// Gameplay----------------------------------------
+static ProgressBar* shieldBar;
+static Button* pauseButton;
+static Button* reTryButton;
+static Button* returnMenuButton;
+//------------------------------------------------
 
 #pragma endregion
 
 // Initialize game variables
-void InitGame()
+static void InitGame()
 {
     float posx, posy;
     float velx, vely;
@@ -94,17 +83,16 @@ void InitGame()
     victory = false;
     pause = false;
 
-    shipRadius = PLAYER_BASE_SIZE;
-
     // Initialization player
     if(player == nullptr)
     {
-        player = new Ship(Vector2{ screenWidth / 2 - shipRadius / 2, screenHeight / 2 - shipRadius / 2 },"resources/images/ship_G.png", PLAYER_SPEED, PLAYER_MAX_SHIELD, shipRadius);
+        player = new Ship(Vector2{ screenWidth / 2 - shipRadius / 2, screenHeight / 2 - shipRadius / 2 },"resources/images/ship_G.png");
     }
     else
     {
+        
         player->setPosition(Vector2{ screenWidth / 2 - shipRadius / 2, screenHeight / 2 - shipRadius / 2 });
-        player->setShield(PLAYER_MAX_SHIELD);
+        player->resetState();
     }
 
 #pragma region HUD and Main Menu
@@ -114,16 +102,52 @@ void InitGame()
     {
         playButton = new Button
         (
-            Vector2{ (float)GetScreenWidth() * 0.4f, (float)GetScreenHeight() * 0.4f },
-            "PLAY", 40, WHITE, BLUE, SKYBLUE, 10, 10, 1
+            Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.5f },
+            "PLAY", 40, 40, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
+
+        playButton->setPivot({ 0.5f, 0.5f });
+    }
+
+    if (pauseButton == nullptr)
+    {
+        pauseButton = new Button
+        (
+            Vector2{ (float)GetScreenWidth() - 20, 10 },
+            " || ", 20, 5, 1, 0.5f, 16, 3, WHITE, RED, MAROON
+        );
+
+        pauseButton->setPivot({ 1,0 });
+    }
+
+    if(reTryButton == nullptr)
+    {
+        reTryButton = new Button
+        (
+            Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.6f },
+            "RE-INTENTAR", 20, 10, 10, 1, 16, 3, WHITE, DARKGREEN, GREEN
+        );
+
+        reTryButton->setPivot({ 0.5f, 0.5f });
+    }
+
+    if (returnMenuButton == nullptr)
+    {
+        returnMenuButton = new Button
+        (
+            Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.75f },
+            "VOLVER AL MENU", 20, 10, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+        );
+
+        returnMenuButton->setPivot({ 0.5f, 0.5f });
     }
 
     // Initialization Shield bar
     if (shieldBar == nullptr)
     {
-        shieldBar = new ProgressBar(Vector2{ 10,10 }, 300, 10, 1, 12, 2);
+        shieldBar = new ProgressBar(Vector2{ 20,10 }, 300, 10, 1, 12, 2);
     }
+
 
 #pragma endregion
 
@@ -136,7 +160,7 @@ void InitGame()
     shoot.clear();
 
     // Initialization shoot
-    for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
+    for (int i = 0; i < shipMaxShoots; i++)
     {
         shoot.push_back(new Shoot(Vector2{ 0, 0 }, Vector2{ 0, 0 }, 2, 0, 0, false, WHITE));
     }
@@ -186,30 +210,30 @@ void InitGame()
 
 
         correctRange = false;
-        velx = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-        vely = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
+        velx = GetRandomValue(-meteorsSpeed, meteorsSpeed);
+        vely = GetRandomValue(-meteorsSpeed, meteorsSpeed);
 
         while (!correctRange)
         {
             if (velx == 0 && vely == 0)
             {
-                velx = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-                vely = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
+                velx = GetRandomValue(-meteorsSpeed, meteorsSpeed);
+                vely = GetRandomValue(-meteorsSpeed, meteorsSpeed);
             }
             else correctRange = true;
         }
 
-        bigMeteor.push_back(new Meteor(Vector2{ posx, posy }, "resources/images/meteor_detailedLarge.png", Vector2{ velx, vely }, METEORS_SPEED, GetRandomValue(0, 360), 40, true));
+        bigMeteor.push_back(new Meteor(Vector2{ posx, posy }, "resources/images/meteor_detailedLarge.png", Vector2{ velx, vely }, meteorsSpeed, GetRandomValue(0, 360), 40, true));
     }
 
     for (int i = 0; i < maxMediumMeteors; i++)
     {
-        mediumMeteor.push_back(new Meteor(Vector2{ -100, -100 }, "resources/images/meteor_detailedLarge.png", Vector2{ 0,0 }, METEORS_SPEED, GetRandomValue(0, 360), 20, false));
+        mediumMeteor.push_back(new Meteor(Vector2{ -100, -100 }, "resources/images/meteor_detailedLarge.png", Vector2{ 0,0 }, meteorsSpeed, GetRandomValue(0, 360), 20, false));
     }
 
     for (int i = 0; i < maxSmallMeteors; i++)
     {
-        smallMeteor.push_back(new Meteor(Vector2{ -100, -100 }, "resources/images/meteor_detailedLarge.png", Vector2{ 0,0 }, METEORS_SPEED, GetRandomValue(0, 360), 10, false));
+        smallMeteor.push_back(new Meteor(Vector2{ -100, -100 }, "resources/images/meteor_detailedLarge.png", Vector2{ 0,0 }, meteorsSpeed, GetRandomValue(0, 360), 10, false));
     }
 
     midMeteorsCount = 0;
@@ -219,7 +243,7 @@ void InitGame()
 }
 
 // Update game (one frame)
-void UpdateGame()
+static void UpdateGame()
 {
     switch (gameState)
     {
@@ -230,7 +254,6 @@ void UpdateGame()
 
         if (playButton->isClick())
         {
-            // TODO modificar como funcionan los meteoros
             InitGame();
             gameState = GameState::Gameplay;
         }
@@ -240,7 +263,19 @@ void UpdateGame()
 
         if (!gameOver)
         {
-            if (IsKeyPressed('P')) pause = !pause;
+            if (!victory)
+            {
+                pauseButton->update();
+                if (pauseButton->isClick()) pause = !pause;
+            }
+            else
+            {
+                reTryButton->update();
+                returnMenuButton->update();
+
+                if (reTryButton->isClick()) InitGame();
+                if (returnMenuButton->isClick()) gameState = GameState::MainMenu;
+            }
 
             if (!pause)
             {
@@ -249,7 +284,7 @@ void UpdateGame()
                 // Player shoot logic
                 if (IsMouseButtonPressed(0))
                 {
-                    for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
+                    for (int i = 0; i < shipMaxShoots; i++)
                     {
                         if (!shoot[i]->getActive())
                         {
@@ -263,20 +298,20 @@ void UpdateGame()
 
 
                             shoot[i]->setActive(true);
-                            shoot[i]->setSpeed(player->getRotation(), PLAYER_SPEED);
+                            shoot[i]->setSpeed(player->getRotation(), player->getMaxSpeed());
                             break;
                         }
                     }
                 }
 
                 // Shoot life timer
-                for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
+                for (int i = 0; i < shipMaxShoots; i++)
                 {
                     if (shoot[i]->getActive()) shoot[i]->addLifeSpawn();
                 }
 
                 // Shot logic
-                for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
+                for (int i = 0; i < shipMaxShoots; i++)
                 {
                     if (shoot[i]->getActive())
                     {
@@ -327,7 +362,7 @@ void UpdateGame()
                 }
 
                 // Collision logic: player-shoots vs meteors
-                for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
+                for (int i = 0; i < shipMaxShoots; i++)
                 {
                     if ((shoot[i]->getActive()))
                     {
@@ -406,19 +441,39 @@ void UpdateGame()
                     }
                 }
             }
+            else
+            {
+                reTryButton->update();
+                if (reTryButton->isClick())
+                {
+                    InitGame();
+                }
+
+                returnMenuButton->update();
+                if (returnMenuButton->isClick()) gameState = GameState::MainMenu;
+            }
 
             if (destroyedMeteorsCount == maxBigMeteors + maxMediumMeteors + maxSmallMeteors) victory = true;
         }
+        else 
+        {
+            reTryButton->update();
+            returnMenuButton->update();
+
+            if (reTryButton->isClick()) InitGame();
+            if (returnMenuButton->isClick()) gameState = GameState::MainMenu;
+        }
 
         break;
-    case GameState::Result:
-        // TODO result logic
+
+    case GameState::Credits:
+        // TODO credits
         break;
     }
 }
 
 // Draw game (one frame)
-void DrawGame()
+static void DrawGame()
 {
     BeginDrawing();
 
@@ -428,7 +483,7 @@ void DrawGame()
     {
     case GameState::MainMenu:
 
-        DrawText("Asteroid XD", GetScreenWidth() / 2 - MeasureText("Asteroid XD", 40) / 2, GetScreenHeight() * 0.15f, 40, WHITE);
+        DrawText("Asteroid xD", (float)GetScreenWidth() / 2 - MeasureText("Asteroid xD", 60) / 2, (float)GetScreenHeight() * 0.15f, 60, WHITE);
         DrawText("Created by Matias Galarza (art from Kenney)", GetScreenWidth() * 0.01f, GetScreenHeight() - 15, 15, GRAY);
 
         playButton->draw();
@@ -438,7 +493,6 @@ void DrawGame()
     case GameState::Gameplay:
         if (!gameOver)
         {
-
             player->draw();
 
             // Draw meteors
@@ -458,23 +512,44 @@ void DrawGame()
             }
 
             // Draw shoot
-            for (int i = 0; i < PLAYER_MAX_SHOOTS; i++)
+            for (int i = 0; i < shipMaxShoots; i++)
             {
                 shoot[i]->draw();
             }
 
             // Shield Bar
-            shieldBar->setProgressValue((float)player->getShield() / PLAYER_MAX_SHIELD);
+            shieldBar->setProgressValue((float)player->getShield() / shipMaxShield);
             shieldBar->draw();
 
-            if (victory) DrawText("VICTORY", screenWidth / 2 - MeasureText("VICTORY", 20) / 2, screenHeight / 2, 20, LIGHTGRAY);
+            if (victory)
+            {
+                DrawText("VICTORY", screenWidth / 2 - MeasureText("VICTORY", 40) / 2, screenHeight / 2 - 40, 40, LIGHTGRAY);
+                reTryButton->draw();
+                returnMenuButton->draw();
+            }
+            else
+            {
+                pauseButton->draw();
 
-            if (pause) DrawText("GAME PAUSED", screenWidth / 2 - MeasureText("GAME PAUSED", 40) / 2, screenHeight / 2 - 40, 40, GRAY);
+                if (pause) 
+                {
+                    DrawText("GAME PAUSED", screenWidth / 2 - MeasureText("GAME PAUSED", 40) / 2, screenHeight / 2 - 40, 40, GRAY);
+                
+                    reTryButton->draw();
+                    returnMenuButton->draw();
+                } 
+            }
         }
-        else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth() / 2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20) / 2, GetScreenHeight() / 2 - 50, 20, GRAY);
+        else
+        {
+            DrawText("YOU LOSE", GetScreenWidth() / 2 - MeasureText("YOU LOSE", 40) / 2, GetScreenHeight() / 2 - 50, 40, GRAY);
+            reTryButton->draw();
+            returnMenuButton->draw();
+        }
 
         break;
-    case GameState::Result:
+
+    case GameState::Credits:
         break;
     }
 
@@ -485,7 +560,7 @@ void DrawGame()
 }
 
 // Unload game variables
-void UnloadGame()
+static void UnloadGame()
 {
     // Delete Player
     delete player;
@@ -519,10 +594,12 @@ void UnloadGame()
     // Delete UI
     delete playButton;
     delete shieldBar;
+    delete reTryButton;
+    delete returnMenuButton;
 }
 
 // Update and Draw (one frame)
-void UpdateDrawGameFrame()
+static void UpdateDrawGameFrame()
 {
     UpdateGame();
     DrawGame();
