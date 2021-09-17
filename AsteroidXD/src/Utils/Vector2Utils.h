@@ -4,6 +4,8 @@
 
 #pragma region VECTOR2 HELPERS
 
+float Clamp(float value, float min, float max);
+
 /// <summary>
 /// Angulo que se genera con 2 vetores
 /// </summary>

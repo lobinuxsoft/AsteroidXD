@@ -7,8 +7,13 @@ void Button::mouseCollision()
     click = hover && IsMouseButtonReleased(0);
 }
 
-Button::Button(Vector2 position, std::string text, int fontSize, Color textColor, Color normalColor, Color pressColor, float hMargin, float vMargin, float roundness, int segment) : 
-    Entity{ position }, text(text), fontSize(fontSize), textColor(textColor), normalColor(normalColor), pressColor(pressColor), hMargin(hMargin), vMargin(vMargin), roundness(roundness), segment(segment) { }
+Button::Button(Vector2 position, std::string text, int fontSize, float hMargin, float vMargin, float roundness, int segment, int tickness, Color textColor, Color normalColor, Color pressColor) :
+    Entity{ position }, text(text), fontSize(fontSize), hMargin(hMargin), vMargin(vMargin), roundness(roundness), segment(segment), tickness(tickness), textColor(textColor), normalColor(normalColor), pressColor(pressColor) { }
+
+void Button::setPivot(Vector2 pivot)
+{
+    this->pivot = pivot;
+}
 
 bool Button::isClick()
 {
@@ -22,14 +27,25 @@ void Button::update()
 
 void Button::draw()
 {
+
+    float deltaX = position.x - (hMargin * 2 + MeasureText(text.c_str(), fontSize)) * pivot.x;
+    float deltaY = position.y - (vMargin * 2 + fontSize) * pivot.y;
+
     rect = Rectangle
     {
-        position.x,
-        position.y,
+        deltaX,
+        deltaY,
         hMargin * 2 + MeasureText(text.c_str(), fontSize),
         vMargin * 2 + fontSize
     };
 
-    DrawRectangleRounded(rect, 0.5f, 16, press ? pressColor : normalColor);
-    DrawText(text.c_str(), position.x + hMargin, position.y + vMargin, fontSize, textColor);
+    DrawRectangleRoundedLines(rect, roundness, segment, tickness, press ? normalColor : pressColor);
+    DrawRectangleRounded(rect, roundness, segment, press ? pressColor : normalColor);
+    DrawText(text.c_str(), rect.x + hMargin, rect.y + vMargin, fontSize, textColor);
+
+#if _DEBUG
+    DrawLine(position.x, 0, position.x, GetScreenHeight(), WHITE);
+    DrawLine(0, position.y, GetScreenWidth(), position.y, WHITE);
+    DrawCircle(position.x, position.y, 5.0f, WHITE);
+#endif
 }
