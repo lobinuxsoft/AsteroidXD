@@ -15,6 +15,11 @@ void Button::setPivot(Vector2 pivot)
     this->pivot = pivot;
 }
 
+void Button::setText(std::string text)
+{
+    this->text = text;
+}
+
 bool Button::isClick()
 {
     return click;
