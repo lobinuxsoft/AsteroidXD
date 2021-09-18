@@ -79,6 +79,8 @@ static int level = 1;
 // Player Ship and shoots---------------------------
 static const char shipImgUrl[] = "resources/images/ship_G.png";
 static Ship *player;
+static const char shieldSfxUrl[] = "resources/sfx/forceField_000.ogg";
+static Sound shieldSfx;
 static std::vector<Shoot*> shoot;
 static const char laserSfxUrl[] = "resources/sfx/laserLarge_000.ogg";
 static Sound laserSfx;
@@ -352,6 +354,9 @@ static void InitGame()
 
         laserSfx = LoadSound(laserSfxUrl);
         SetSoundVolume(laserSfx, 0.5f);
+
+        shieldSfx = LoadSound(shieldSfxUrl);
+        SetSoundVolume(shieldSfx, 0.5f);
     }
 
 #pragma endregion
@@ -458,6 +463,8 @@ static void UpdateGame()
                 {
                     if (CheckCollisionCircles(player->getPosition(), player->getRadius(), bigMeteor[a]->getPosition(), bigMeteor[a]->getRadius()) && bigMeteor[a]->getActive())
                     {
+                        SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+                        PlaySound(shieldSfx);
                         gameOver = player->damageShip(bigMeteor[a]->getPosition());
                     }
                 }
@@ -466,6 +473,8 @@ static void UpdateGame()
                 {
                     if (CheckCollisionCircles(player->getPosition(), player->getRadius(), mediumMeteor[a]->getPosition(), mediumMeteor[a]->getRadius()) && mediumMeteor[a]->getActive())
                     {
+                        SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+                        PlaySound(shieldSfx);
                         gameOver = player->damageShip(mediumMeteor[a]->getPosition());
                     }
                 }
@@ -474,6 +483,8 @@ static void UpdateGame()
                 {
                     if (CheckCollisionCircles(player->getPosition(), player->getRadius(), smallMeteor[a]->getPosition(), smallMeteor[a]->getRadius()) && smallMeteor[a]->getActive())
                     {
+                        SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+                        PlaySound(shieldSfx);
                         gameOver = player->damageShip(smallMeteor[a]->getPosition());
                     }
                 }
@@ -792,6 +803,7 @@ static void UnloadGame()
     UnloadImage(gameIcon);
 
     UnloadSound(laserSfx);
+    UnloadSound(shieldSfx);
     CloseAudioDevice();
 }
 
