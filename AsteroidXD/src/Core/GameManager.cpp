@@ -22,6 +22,24 @@ static const float shipRadius = 18.0f;
 
 static const float meteorsSpeed = 150.0f;
 
+static const char tutorialText[] = R"(
+Destruye todos los asteroides para superar el nivel,
+si los asteroides tocan la nave se reduce su integridad.
+
+El medidor de integridad se encuentra en la esquina superior izquierda,
+cuando esta se vacie el juego se termina.
+
+Puedes pausar el juego si haces CLICK en el boton de pausa,
+que se encuentra en la esquina superior derecha.
+
+Comportamiento de la nave:
+- Siempre mira donde esta el puntero del mouse.
+- Boton derecho del mouse para acelerar.
+- Boton izquierdo del mouse para disparar.
+
+DISFRUTA EL JUEGO xD
+)";
+
 #pragma endregion
 
 #pragma region ENUMS
@@ -30,6 +48,7 @@ enum class GameState
 {
     MainMenu,
     Gameplay,
+    Tutorial,
     Credits
 };
 
@@ -75,6 +94,7 @@ static Button* playButton;
 // Gameplay----------------------------------------
 static ProgressBar* shieldBar;
 static Button* pauseButton;
+static Button* tutorialButton;
 static Button* reTryButton;
 static Button* returnMenuButton;
 //------------------------------------------------
@@ -118,6 +138,17 @@ static void InitGame()
     else
     {
         playButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.5f });
+    }
+
+    if (tutorialButton == nullptr)
+    {
+        tutorialButton = new Button
+        (
+            Vector2{ 0, 0 },
+            "TUTORIAL", 20, 40, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+        );
+
+        tutorialButton->setPivot({ 0.5f, 0.5f });
     }
 
     if (pauseButton == nullptr)
@@ -285,6 +316,9 @@ static void UpdateGame()
             InitGame();
             gameState = GameState::Gameplay;
         }
+
+        tutorialButton->update();
+        if (tutorialButton->isClick()) gameState = GameState::Tutorial;
 
         break;
     case GameState::Gameplay:
@@ -499,6 +533,13 @@ static void UpdateGame()
 
         break;
 
+    case GameState::Tutorial:
+
+        tutorialButton->update();
+        if (tutorialButton->isClick()) gameState = GameState::MainMenu;
+
+        break;
+
     case GameState::Credits:
         // TODO credits
         break;
@@ -521,6 +562,11 @@ static void DrawGame()
 
         playButton->setText(TextFormat("JUGAR NIVEL %0i", level));
         playButton->draw();
+
+        tutorialButton->setPivot({ 0.5f, 0.5f });
+        tutorialButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.65f });
+        tutorialButton->setText("TUTORIAL");
+        tutorialButton->draw();
 
         break;
 
@@ -587,6 +633,18 @@ static void DrawGame()
 
         break;
 
+    case GameState::Tutorial:
+
+        DrawText("TUTORIAL", GetScreenWidth() / 2 - MeasureText("TUTORIAL", 40) / 2, GetScreenHeight() * 0.05f, 40, WHITE);
+        DrawText(tutorialText, GetScreenWidth() / 2 - MeasureText(tutorialText, 15) / 2, GetScreenHeight() * 0.1f, 15, WHITE);
+
+        tutorialButton->setPivot({ 0.5f, 1.0f });
+        tutorialButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.98f});
+        tutorialButton->setText("VOLVER");
+        tutorialButton->draw();
+
+        break;
+
     case GameState::Credits:
         break;
     }
@@ -631,6 +689,7 @@ static void UnloadGame()
 
     // Delete UI
     delete playButton;
+    delete tutorialButton;
     delete shieldBar;
     delete reTryButton;
     delete returnMenuButton;
@@ -652,8 +711,6 @@ void Run()
     InitWindow(screenWidth, screenHeight, "Asteroid xD");
     gameIcon = LoadImage(gameIconUrl);
     SetWindowIcon(gameIcon);
-
-    
 
     InitGame();
 
