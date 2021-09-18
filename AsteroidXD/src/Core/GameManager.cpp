@@ -79,6 +79,7 @@ static int level = 1;
 // Player Ship and shoots---------------------------
 static const char shipImgUrl[] = "resources/images/ship_G.png";
 static Ship *player;
+static const char engineSfxUrl[] = "resources/sfx/engineCircular_000.ogg";
 static const char shieldSfxUrl[] = "resources/sfx/forceField_000.ogg";
 static Sound shieldSfx;
 static std::vector<Shoot*> shoot;
@@ -129,10 +130,25 @@ static void InitGame()
     victory = false;
     pause = false;
 
+#pragma region Audio
+
+    if (!IsAudioDeviceReady())
+    {
+        InitAudioDevice();
+
+        laserSfx = LoadSound(laserSfxUrl);
+        SetSoundVolume(laserSfx, 0.5f);
+
+        shieldSfx = LoadSound(shieldSfxUrl);
+        SetSoundVolume(shieldSfx, 0.5f);
+    }
+
+#pragma endregion
+
     // Initialization player
     if(player == nullptr)
     {
-        player = new Ship(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 }, shipImgUrl);
+        player = new Ship(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 }, shipImgUrl, engineSfxUrl);
     }
     else
     {
@@ -345,22 +361,6 @@ static void InitGame()
     smallMeteorsCount = 0;
 
 #pragma endregion
-
-#pragma region Audio
-
-    if(!IsAudioDeviceReady())
-    {
-        InitAudioDevice();
-
-        laserSfx = LoadSound(laserSfxUrl);
-        SetSoundVolume(laserSfx, 0.5f);
-
-        shieldSfx = LoadSound(shieldSfxUrl);
-        SetSoundVolume(shieldSfx, 0.5f);
-    }
-
-#pragma endregion
-
 
     HideCursor();
 }
