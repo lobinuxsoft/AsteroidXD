@@ -40,6 +40,18 @@ Comportamiento de la nave:
 DISFRUTA EL JUEGO xD
 )";
 
+
+static const char creditsText[] = R"(
+Desarrollador:
+
+- Matias Galarza
+
+Assets usados en el desarrollo:
+
+- Simple Space creado por Kenney (https://kenney.nl/assets/simple-space)
+- Sci-Fi Sounds creado por Kenney (https://kenney.nl/assets/sci-fi-sounds)
+)";
+
 #pragma endregion
 
 #pragma region ENUMS
@@ -49,7 +61,8 @@ enum class GameState
     MainMenu,
     Gameplay,
     Tutorial,
-    Credits
+    Credits,
+    Quit
 };
 
 #pragma endregion
@@ -95,6 +108,8 @@ static Button* playButton;
 static ProgressBar* shieldBar;
 static Button* pauseButton;
 static Button* tutorialButton;
+static Button* creditsButton;
+static Button* quitButton;
 static Button* reTryButton;
 static Button* returnMenuButton;
 //------------------------------------------------
@@ -130,7 +145,7 @@ static void InitGame()
         playButton = new Button
         (
             Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.5f },
-            "PLAY", 20, 40, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "PLAY", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         playButton->setPivot({ 0.5f, 0.5f });
@@ -145,10 +160,36 @@ static void InitGame()
         tutorialButton = new Button
         (
             Vector2{ 0, 0 },
-            "TUTORIAL", 20, 40, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "TUTORIAL", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         tutorialButton->setPivot({ 0.5f, 0.5f });
+    }
+
+    if (creditsButton == nullptr)
+    {
+        creditsButton = new Button
+        (
+            Vector2{ 0, 0 },
+            "CREDITOS", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+        );
+
+        creditsButton->setPivot({ 0.5f,0.5f });
+    }
+
+    if (quitButton == nullptr)
+    {
+        quitButton = new Button
+        (
+            Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.875f },
+            "SALIR DEL JUEGO", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+        );
+
+        quitButton->setPivot({ 0.5f,0.5f });
+    }
+    else
+    {
+        quitButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.875f });
     }
 
     if (pauseButton == nullptr)
@@ -319,6 +360,12 @@ static void UpdateGame()
 
         tutorialButton->update();
         if (tutorialButton->isClick()) gameState = GameState::Tutorial;
+
+        creditsButton->update();
+        if (creditsButton->isClick()) gameState = GameState::Credits;
+
+        quitButton->update();
+        if (quitButton->isClick()) gameState = GameState::Quit;
 
         break;
     case GameState::Gameplay:
@@ -541,7 +588,10 @@ static void UpdateGame()
         break;
 
     case GameState::Credits:
-        // TODO credits
+
+        creditsButton->update();
+        if (creditsButton->isClick()) gameState = GameState::MainMenu;
+
         break;
     }
 }
@@ -564,9 +614,16 @@ static void DrawGame()
         playButton->draw();
 
         tutorialButton->setPivot({ 0.5f, 0.5f });
-        tutorialButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.65f });
+        tutorialButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.625f });
         tutorialButton->setText("TUTORIAL");
         tutorialButton->draw();
+
+        creditsButton->setPivot({ 0.5f,0.5f });
+        creditsButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.75f });
+        creditsButton->setText("CREDITOS");
+        creditsButton->draw();
+
+        quitButton->draw();
 
         break;
 
@@ -646,6 +703,14 @@ static void DrawGame()
         break;
 
     case GameState::Credits:
+
+        DrawText("CREDITOS", GetScreenWidth() / 2 - MeasureText("CREDITOS", 40) / 2, GetScreenHeight() * 0.05f, 40, WHITE);
+        DrawText(creditsText, GetScreenWidth() / 2 - MeasureText(creditsText, 15) / 2, GetScreenHeight() * 0.1f, 15, WHITE);
+
+        creditsButton->setPivot({ 0.5f,1.0f });
+        creditsButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.98f });
+        creditsButton->setText("VOLVER");
+        creditsButton->draw();
         break;
     }
 
@@ -653,6 +718,13 @@ static void DrawGame()
     DrawCircle(GetMouseX(), GetMouseY(), 5, RED);
 
     EndDrawing();
+}
+
+// Update and Draw (one frame)
+static void UpdateDrawGameFrame()
+{
+    UpdateGame();
+    DrawGame();
 }
 
 // Unload game variables
@@ -669,19 +741,19 @@ static void UnloadGame()
     shoot.clear();
 
     // Delete Meteors
-    for (Meteor *m : bigMeteor)
+    for (Meteor* m : bigMeteor)
     {
         delete m;
     }
     bigMeteor.clear();
 
-    for (Meteor *m : mediumMeteor)
+    for (Meteor* m : mediumMeteor)
     {
         delete m;
     }
     mediumMeteor.clear();
 
-    for (Meteor *m : smallMeteor)
+    for (Meteor* m : smallMeteor)
     {
         delete m;
     }
@@ -690,18 +762,13 @@ static void UnloadGame()
     // Delete UI
     delete playButton;
     delete tutorialButton;
+    delete creditsButton;
+    delete quitButton;
     delete shieldBar;
     delete reTryButton;
     delete returnMenuButton;
 
     UnloadImage(gameIcon);
-}
-
-// Update and Draw (one frame)
-static void UpdateDrawGameFrame()
-{
-    UpdateGame();
-    DrawGame();
 }
 
 void Run()
@@ -718,7 +785,7 @@ void Run()
     //--------------------------------------------------------------------------------------
 
     // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
+    while (!WindowShouldClose() && gameState != GameState::Quit)    // Detect window close button or ESC key
     {
         // Update and Draw
         //----------------------------------------------------------------------------------
