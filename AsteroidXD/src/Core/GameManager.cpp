@@ -67,7 +67,6 @@ enum class GameState
 
 #pragma endregion
 
-
 #pragma region GLOBAL VARIABLES
 
 static GameState gameState = GameState::MainMenu;
@@ -81,6 +80,8 @@ static int level = 1;
 static const char shipImgUrl[] = "resources/images/ship_G.png";
 static Ship *player;
 static std::vector<Shoot*> shoot;
+static const char laserSfxUrl[] = "resources/sfx/laserLarge_000.ogg";
+static Sound laserSfx;
 //--------------------------------------------------
 
 // Meteors------------------------------------------
@@ -246,6 +247,8 @@ static void InitGame()
 
 #pragma endregion
 
+#pragma region Meteors
+
     destroyedMeteorsCount = 0;
 
     for (Shoot* s : shoot)
@@ -339,6 +342,21 @@ static void InitGame()
     midMeteorsCount = 0;
     smallMeteorsCount = 0;
 
+#pragma endregion
+
+#pragma region Audio
+
+    if(!IsAudioDeviceReady())
+    {
+        InitAudioDevice();
+
+        laserSfx = LoadSound(laserSfxUrl);
+        SetSoundVolume(laserSfx, 0.5f);
+    }
+
+#pragma endregion
+
+
     HideCursor();
 }
 
@@ -413,6 +431,9 @@ static void UpdateGame()
 
                             shoot[i]->setActive(true);
                             shoot[i]->setSpeed(player->getRotation(), player->getMaxSpeed());
+
+                            SetSoundPitch(laserSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+                            PlaySound(laserSfx);
                             break;
                         }
                     }
@@ -769,6 +790,9 @@ static void UnloadGame()
     delete returnMenuButton;
 
     UnloadImage(gameIcon);
+
+    UnloadSound(laserSfx);
+    CloseAudioDevice();
 }
 
 void Run()
