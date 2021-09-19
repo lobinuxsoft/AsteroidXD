@@ -1,8 +1,9 @@
 #include "Meteor.h"
 
-Meteor::Meteor(Vector2 position, const char spriteUrl[], Vector2 speed, float maxSpeed, float rotation, float radius, bool active) : Entity{ position }
+Meteor::Meteor(Vector2 position, const char spriteUrl[], const char explodeSfxUrl[], Vector2 speed, float maxSpeed, float rotation, float radius, bool active) : Entity{ position }
 {
 	this->sprite = LoadTexture(spriteUrl);
+	this->explodeSfx = LoadSound(explodeSfxUrl);
 	this->speed = speed;
 	this->maxSpeed = maxSpeed;
 	this->rotation = rotation;
@@ -13,6 +14,7 @@ Meteor::Meteor(Vector2 position, const char spriteUrl[], Vector2 speed, float ma
 Meteor::~Meteor()
 {
 	UnloadTexture(sprite);
+	UnloadSound(explodeSfx);
 }
 
 void Meteor::movement()
@@ -50,6 +52,13 @@ bool Meteor::getActive()
 void Meteor::setActive(bool active)
 {
 	this->active = active;
+}
+
+void Meteor::explode()
+{
+	setActive(false);
+	SetSoundPitch(explodeSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+	PlaySound(explodeSfx);
 }
 
 void Meteor::setSpeed(Vector2 speed)

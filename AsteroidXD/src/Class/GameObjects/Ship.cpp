@@ -25,8 +25,12 @@ void Ship::moveForward()
     }
     else
     {
-        acceleration = 0;
+        acceleration = (acceleration > 0)? acceleration - GetFrameTime() : 0;
     }
+
+    SetSoundVolume(engineSfx, (Vector2Length(velocity) * acceleration) * 0.01f);
+    SetSoundPitch(engineSfx, (Vector2Length(velocity) * acceleration) * 0.15f);
+    if (!IsSoundPlaying(engineSfx)) PlaySound(engineSfx);
 
     velocity = { Clamp(velocity.x, -maxVelocity, maxVelocity), Clamp(velocity.y, -maxVelocity, maxVelocity) };
 
@@ -35,11 +39,26 @@ void Ship::moveForward()
     position.y -= velocity.y;
 }
 
-Ship::Ship(Vector2 position, const char spriteUrl[]) : Entity{ position }, sprite(LoadTexture(spriteUrl)) { }
+Ship::Ship(Vector2 position, const char spriteUrl[], const char engineUrl[], const char shieldSfxUrl[], const char explodeSfxUrl[]) : 
+    Entity{ position }, 
+    sprite(LoadTexture(spriteUrl)) 
+{
+    engineSfx = LoadSound(engineUrl);
+    SetSoundVolume(engineSfx, 3.0f);
+
+    shieldSfx = LoadSound(shieldSfxUrl);
+    SetSoundVolume(shieldSfx, 0.65f);
+
+    explodeSfx = LoadSound(explodeSfxUrl);
+    SetSoundVolume(explodeSfx, 0.65f);
+}
 
 Ship::~Ship()
 {
     UnloadTexture(sprite);
+    UnloadSound(engineSfx);
+    UnloadSound(shieldSfx);
+    UnloadSound(explodeSfx);
 }
 
 float Ship::getRotation()
@@ -77,13 +96,17 @@ float Ship::getMaxSpeed()
 
 bool Ship::damageShip(Vector2 hitPos)
 {
+    SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+    PlaySound(shieldSfx);
     Vector2 pushDir = Vector2Subtract(position, hitPos);
 	timer = 0.5f;
 	color = RED;
-
+    acceleration = 0;
     velocity.x += Vector2Normalize(pushDir).x;
     velocity.y -= Vector2Normalize(pushDir).y;
 	shield--;
+
+    if (shield <= 0) PlaySound(explodeSfx);
 
 	return shield <= 0;
 }
