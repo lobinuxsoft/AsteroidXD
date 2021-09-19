@@ -39,12 +39,15 @@ void Ship::moveForward()
     position.y -= velocity.y;
 }
 
-Ship::Ship(Vector2 position, const char spriteUrl[], const char engineUrl[]) : 
+Ship::Ship(Vector2 position, const char spriteUrl[], const char engineUrl[], const char shieldSfxUrl[]) : 
     Entity{ position }, 
     sprite(LoadTexture(spriteUrl)) 
 {
     engineSfx = LoadSound(engineUrl);
-    SetSoundVolume(engineSfx, 0.5f);
+    SetSoundVolume(engineSfx, 0.85f);
+
+    shieldSfx = LoadSound(shieldSfxUrl);
+    SetSoundVolume(shieldSfx, 0.65f);
 }
 
 Ship::~Ship()
@@ -88,6 +91,8 @@ float Ship::getMaxSpeed()
 
 bool Ship::damageShip(Vector2 hitPos)
 {
+    SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
+    PlaySound(shieldSfx);
     Vector2 pushDir = Vector2Subtract(position, hitPos);
 	timer = 0.5f;
 	color = RED;

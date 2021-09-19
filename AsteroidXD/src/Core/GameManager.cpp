@@ -81,7 +81,6 @@ static const char shipImgUrl[] = "resources/images/ship_G.png";
 static Ship *player;
 static const char engineSfxUrl[] = "resources/sfx/engineCircular_000.ogg";
 static const char shieldSfxUrl[] = "resources/sfx/forceField_000.ogg";
-static Sound shieldSfx;
 static std::vector<Shoot*> shoot;
 static const char laserSfxUrl[] = "resources/sfx/laserLarge_000.ogg";
 static Sound laserSfx;
@@ -89,6 +88,7 @@ static Sound laserSfx;
 
 // Meteors------------------------------------------
 static const char meteorImgUrl[] = "resources/images/meteor_detailedLarge.png";
+static const char meteorExplodeSfxUrl[] = "resources/sfx/explosionCrunch_000.ogg";
 static std::vector<Meteor*> bigMeteor;
 static std::vector<Meteor*> mediumMeteor;
 static std::vector<Meteor*> smallMeteor;
@@ -138,9 +138,6 @@ static void InitGame()
 
         laserSfx = LoadSound(laserSfxUrl);
         SetSoundVolume(laserSfx, 0.5f);
-
-        shieldSfx = LoadSound(shieldSfxUrl);
-        SetSoundVolume(shieldSfx, 0.5f);
     }
 
 #pragma endregion
@@ -148,7 +145,7 @@ static void InitGame()
     // Initialization player
     if(player == nullptr)
     {
-        player = new Ship(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 }, shipImgUrl, engineSfxUrl);
+        player = new Ship(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 }, shipImgUrl, engineSfxUrl, shieldSfxUrl);
     }
     else
     {
@@ -344,17 +341,17 @@ static void InitGame()
             else correctRange = true;
         }
 
-        bigMeteor.push_back(new Meteor(Vector2{ posx, posy }, meteorImgUrl, Vector2{ velx, vely }, meteorsSpeed, GetRandomValue(0, 360), 40, true));
+        bigMeteor.push_back(new Meteor(Vector2{ posx, posy }, meteorImgUrl, meteorExplodeSfxUrl, Vector2{ velx, vely }, meteorsSpeed, GetRandomValue(0, 360), 40, true));
     }
 
     for (int i = 0; i < maxMediumMeteors; i++)
     {
-        mediumMeteor.push_back(new Meteor(Vector2{ -100, -100 }, meteorImgUrl, Vector2{ 0,0 }, meteorsSpeed, GetRandomValue(0, 360), 20, false));
+        mediumMeteor.push_back(new Meteor(Vector2{ -100, -100 }, meteorImgUrl, meteorExplodeSfxUrl, Vector2{ 0,0 }, meteorsSpeed, GetRandomValue(0, 360), 20, false));
     }
 
     for (int i = 0; i < maxSmallMeteors; i++)
     {
-        smallMeteor.push_back(new Meteor(Vector2{ -100, -100 }, meteorImgUrl, Vector2{ 0,0 }, meteorsSpeed, GetRandomValue(0, 360), 10, false));
+        smallMeteor.push_back(new Meteor(Vector2{ -100, -100 }, meteorImgUrl, meteorExplodeSfxUrl, Vector2{ 0,0 }, meteorsSpeed, GetRandomValue(0, 360), 10, false));
     }
 
     midMeteorsCount = 0;
@@ -463,8 +460,6 @@ static void UpdateGame()
                 {
                     if (CheckCollisionCircles(player->getPosition(), player->getRadius(), bigMeteor[a]->getPosition(), bigMeteor[a]->getRadius()) && bigMeteor[a]->getActive())
                     {
-                        SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
-                        PlaySound(shieldSfx);
                         gameOver = player->damageShip(bigMeteor[a]->getPosition());
                     }
                 }
@@ -473,8 +468,6 @@ static void UpdateGame()
                 {
                     if (CheckCollisionCircles(player->getPosition(), player->getRadius(), mediumMeteor[a]->getPosition(), mediumMeteor[a]->getRadius()) && mediumMeteor[a]->getActive())
                     {
-                        SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
-                        PlaySound(shieldSfx);
                         gameOver = player->damageShip(mediumMeteor[a]->getPosition());
                     }
                 }
@@ -483,8 +476,6 @@ static void UpdateGame()
                 {
                     if (CheckCollisionCircles(player->getPosition(), player->getRadius(), smallMeteor[a]->getPosition(), smallMeteor[a]->getRadius()) && smallMeteor[a]->getActive())
                     {
-                        SetSoundPitch(shieldSfx, ((float)GetRandomValue(0, 45) / 100) + 1);
-                        PlaySound(shieldSfx);
                         gameOver = player->damageShip(smallMeteor[a]->getPosition());
                     }
                 }
@@ -518,7 +509,7 @@ static void UpdateGame()
                             {
                                 shoot[i]->setActive(false);
                                 shoot[i]->resetLifeSpawn();
-                                bigMeteor[a]->setActive(false);
+                                bigMeteor[a]->explode();
                                 destroyedMeteorsCount++;
 
                                 for (int j = 0; j < 2; j++)
@@ -548,7 +539,7 @@ static void UpdateGame()
                             {
                                 shoot[i]->setActive(false);
                                 shoot[i]->resetLifeSpawn();
-                                mediumMeteor[b]->setActive(false);
+                                mediumMeteor[b]->explode();
                                 destroyedMeteorsCount++;
 
                                 for (int j = 0; j < 2; j++)
@@ -578,7 +569,7 @@ static void UpdateGame()
                             {
                                 shoot[i]->setActive(false);
                                 shoot[i]->resetLifeSpawn();
-                                smallMeteor[c]->setActive(false);
+                                smallMeteor[c]->explode();
                                 destroyedMeteorsCount++;
 
                                 c = maxSmallMeteors;
@@ -803,7 +794,6 @@ static void UnloadGame()
     UnloadImage(gameIcon);
 
     UnloadSound(laserSfx);
-    UnloadSound(shieldSfx);
     CloseAudioDevice();
 }
 
