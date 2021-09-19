@@ -7,8 +7,19 @@ void Button::mouseCollision()
     click = hover && IsMouseButtonReleased(0);
 }
 
-Button::Button(Vector2 position, std::string text, int fontSize, float hMargin, float vMargin, float roundness, int segment, int tickness, Color textColor, Color normalColor, Color pressColor) :
-    Entity{ position }, text(text), fontSize(fontSize), hMargin(hMargin), vMargin(vMargin), roundness(roundness), segment(segment), tickness(tickness), textColor(textColor), normalColor(normalColor), pressColor(pressColor) { }
+Button::Button(Vector2 position, std::string text, const char clickSfxUrl[], int fontSize, float hMargin, float vMargin, float roundness, int segment, int tickness, Color textColor, Color normalColor, Color pressColor) :
+    Entity{position},
+    text(text),
+    clickSfx(LoadSound(clickSfxUrl)),
+    fontSize(fontSize),
+    hMargin(hMargin),
+    vMargin(vMargin),
+    roundness(roundness),
+    segment(segment),
+    tickness(tickness),
+    textColor(textColor),
+    normalColor(normalColor),
+    pressColor(pressColor) { }
 
 void Button::setPivot(Vector2 pivot)
 {
@@ -22,6 +33,7 @@ void Button::setText(std::string text)
 
 bool Button::isClick()
 {
+    if(click) PlaySound(clickSfx);
     return click;
 }
 

@@ -11,6 +11,7 @@ private:
     Texture2D sprite;
     Sound engineSfx;
     Sound shieldSfx;
+    Sound explodeSfx;
     Color color = WHITE;
     Vector2 velocity{ 0,0 };
     Vector2 dir{ 0,0 };
@@ -28,7 +29,7 @@ private:
     void screenLimitsLogic();
 
 public:
-    Ship(Vector2 position, const char spriteUrl[], const char engineUrl[], const char shieldSfxUrl[]);
+    Ship(Vector2 position, const char spriteUrl[], const char engineUrl[], const char shieldSfxUrl[], const char explodeSfxUrl[]);
     ~Ship();
     float getRotation();
     float getRadius();

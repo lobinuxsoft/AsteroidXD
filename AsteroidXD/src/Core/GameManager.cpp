@@ -42,14 +42,18 @@ DISFRUTA EL JUEGO xD
 
 
 static const char creditsText[] = R"(
-Desarrollador:
+Desarrollador: Matias Galarza
 
-- Matias Galarza
+Arte: 
+-Simple Space, creado por Kenney (https://kenney.nl/assets/simple-space)
 
-Assets usados en el desarrollo:
+Sounds FX:
+- Sci-Fi Sounds, creado por Kenney (https://kenney.nl/assets/sci-fi-sounds)
+- Interface Sounds, creado por Kenney (https://kenney.nl/assets/interface-sounds)
 
-- Simple Space creado por Kenney (https://kenney.nl/assets/simple-space)
-- Sci-Fi Sounds creado por Kenney (https://kenney.nl/assets/sci-fi-sounds)
+Musica:
+- Cyberpunk Moonlight Sonata,
+  creado por Joth (https://opengameart.org/content/cyberpunk-moonlight-sonata)
 )";
 
 #pragma endregion
@@ -75,12 +79,23 @@ static bool pause = false;
 static bool victory = false;
 static int level = 1;
 
+// Music--------------------------------------------
+
+static const char mainMusicUrl[] = "resources/music/CyberpunkMoonlightSonata.ogg";
+static const char gameplayMusicUrl[] = "resources/music/fight.ogg";
+
+static Music mainMusic;
+static Music gameplayMusic;
+
+//--------------------------------------------------
+
 // Gameplay objects
 // Player Ship and shoots---------------------------
 static const char shipImgUrl[] = "resources/images/ship_G.png";
 static Ship *player;
 static const char engineSfxUrl[] = "resources/sfx/engineCircular_000.ogg";
 static const char shieldSfxUrl[] = "resources/sfx/forceField_000.ogg";
+static const char explodeShipSfxUrl[] = "resources/sfx/explosionCrunch_004.ogg";
 static std::vector<Shoot*> shoot;
 static const char laserSfxUrl[] = "resources/sfx/laserLarge_000.ogg";
 static Sound laserSfx;
@@ -105,15 +120,18 @@ static int destroyedMeteorsCount = 0;
 
 // HUD
 // Main menu---------------------------------------
+static const char playSfxUrl[] = "resources/sfx/confirmation_002.ogg";
+static const char clickSfxUrl[] = "resources/sfx/select_003.ogg";
+static const char tutorialSfxUrl[] = "resources/sfx/question_003.ogg";
 static Button* playButton;
+static Button* tutorialButton;
+static Button* creditsButton;
+static Button* quitButton;
 //-------------------------------------------------
 
 // Gameplay----------------------------------------
 static ProgressBar* shieldBar;
 static Button* pauseButton;
-static Button* tutorialButton;
-static Button* creditsButton;
-static Button* quitButton;
 static Button* reTryButton;
 static Button* returnMenuButton;
 //------------------------------------------------
@@ -136,6 +154,12 @@ static void InitGame()
     {
         InitAudioDevice();
 
+        mainMusic = LoadMusicStream(mainMusicUrl);
+        SetMusicVolume(mainMusic, 0.15f);
+
+        gameplayMusic = LoadMusicStream(gameplayMusicUrl);
+        SetMusicVolume(gameplayMusic, 0.15f);
+
         laserSfx = LoadSound(laserSfxUrl);
         SetSoundVolume(laserSfx, 0.5f);
     }
@@ -145,7 +169,7 @@ static void InitGame()
     // Initialization player
     if(player == nullptr)
     {
-        player = new Ship(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 }, shipImgUrl, engineSfxUrl, shieldSfxUrl);
+        player = new Ship(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 }, shipImgUrl, engineSfxUrl, shieldSfxUrl, explodeShipSfxUrl);
     }
     else
     {
@@ -161,7 +185,7 @@ static void InitGame()
         playButton = new Button
         (
             Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.5f },
-            "PLAY", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "PLAY", playSfxUrl, 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         playButton->setPivot({ 0.5f, 0.5f });
@@ -176,7 +200,7 @@ static void InitGame()
         tutorialButton = new Button
         (
             Vector2{ 0, 0 },
-            "TUTORIAL", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "TUTORIAL", tutorialSfxUrl, 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         tutorialButton->setPivot({ 0.5f, 0.5f });
@@ -187,7 +211,7 @@ static void InitGame()
         creditsButton = new Button
         (
             Vector2{ 0, 0 },
-            "CREDITOS", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "CREDITOS", clickSfxUrl, 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         creditsButton->setPivot({ 0.5f,0.5f });
@@ -198,7 +222,7 @@ static void InitGame()
         quitButton = new Button
         (
             Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.875f },
-            "SALIR DEL JUEGO", 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "SALIR DEL JUEGO", clickSfxUrl, 18, 20, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         quitButton->setPivot({ 0.5f,0.5f });
@@ -213,7 +237,7 @@ static void InitGame()
         pauseButton = new Button
         (
             Vector2{ (float)GetScreenWidth() - 20, 10 },
-            " || ", 20, 5, 1, 0.5f, 16, 3, WHITE, RED, MAROON
+            " || ", clickSfxUrl, 20, 5, 1, 0.5f, 16, 3, WHITE, RED, MAROON
         );
 
         pauseButton->setPivot({ 1,0 });
@@ -228,7 +252,7 @@ static void InitGame()
         reTryButton = new Button
         (
             Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.6f },
-            "RE-INTENTAR", 20, 10, 10, 1, 16, 3, WHITE, DARKGREEN, GREEN
+            "RE-INTENTAR", playSfxUrl, 20, 10, 10, 1, 16, 3, WHITE, DARKGREEN, GREEN
         );
 
         reTryButton->setPivot({ 0.5f, 0.5f });
@@ -243,7 +267,7 @@ static void InitGame()
         returnMenuButton = new Button
         (
             Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.75f },
-            "VOLVER AL MENU", 20, 10, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
+            "VOLVER AL MENU", clickSfxUrl, 20, 10, 10, 1, 16, 3, WHITE, DARKBLUE, BLUE
         );
 
         returnMenuButton->setPivot({ 0.5f, 0.5f });
@@ -369,6 +393,13 @@ static void UpdateGame()
     {
     case GameState::MainMenu:
 
+        if (!IsMusicPlaying(mainMusic)) 
+        {
+            StopMusicStream(gameplayMusic);
+            PlayMusicStream(mainMusic);
+        }
+        else UpdateMusicStream(mainMusic);
+
         // Play button behaviour
         playButton->update();
 
@@ -389,6 +420,13 @@ static void UpdateGame()
 
         break;
     case GameState::Gameplay:
+
+        if (!IsMusicPlaying(gameplayMusic)) 
+        {
+            StopMusicStream(mainMusic);
+            PlayMusicStream(gameplayMusic); 
+        }
+        else UpdateMusicStream(gameplayMusic);
 
         if (!gameOver)
         {
@@ -605,12 +643,18 @@ static void UpdateGame()
 
     case GameState::Tutorial:
 
+        if (!IsMusicPlaying(mainMusic)) PlayMusicStream(mainMusic);
+        else UpdateMusicStream(mainMusic);
+
         tutorialButton->update();
         if (tutorialButton->isClick()) gameState = GameState::MainMenu;
 
         break;
 
     case GameState::Credits:
+
+        if (!IsMusicPlaying(mainMusic)) PlayMusicStream(mainMusic);
+        else UpdateMusicStream(mainMusic);
 
         creditsButton->update();
         if (creditsButton->isClick()) gameState = GameState::MainMenu;
@@ -793,6 +837,8 @@ static void UnloadGame()
 
     UnloadImage(gameIcon);
 
+    UnloadMusicStream(mainMusic);
+    UnloadMusicStream(gameplayMusic);
     UnloadSound(laserSfx);
     CloseAudioDevice();
 }
