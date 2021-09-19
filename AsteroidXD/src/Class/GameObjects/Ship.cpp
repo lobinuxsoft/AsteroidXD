@@ -81,6 +81,11 @@ int Ship::getMaxShield()
     return maxShield;
 }
 
+void Ship::resetShield()
+{
+    shield = maxShield;
+}
+
 void Ship::resetState()
 {
     velocity = { 0,0 };

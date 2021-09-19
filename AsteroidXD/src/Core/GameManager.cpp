@@ -7,13 +7,14 @@
 #include "Class/GameObjects/Shoot.h"
 #include "Class/UIObjects/Button.h"
 #include "Class/UIObjects/ProgressBar.h"
+#include "Class/GameObjects/HpPowerUp.h"
 
 #pragma region CONSTANT VARIABLES
 
 static const char gameIconUrl[] = "resources/images/icon.png";
 static Image gameIcon;
-static const int screenWidth = 800;
-static const int screenHeight = 450;
+static const int screenWidth = 1024;
+static const int screenHeight = 720;
 static bool isFullScreen = false;
 
 static const int shipMaxShoots = 10;
@@ -46,6 +47,7 @@ Desarrollador: Matias Galarza
 
 Arte: 
 -Simple Space, creado por Kenney (https://kenney.nl/assets/simple-space)
+-Crosshair Pack, creado por Kenney (https://kenney.nl/assets/crosshair-pack)
 -Space Background, creado por Ansimuz (https://opengameart.org/content/space-background-3)
 
 Sounds FX:
@@ -115,13 +117,16 @@ static Music gameplayMusic;
 // Gameplay objects
 // Player Ship and shoots---------------------------
 static const char shipImgUrl[] = "resources/images/ship_G.png";
-static Ship *player;
+static Ship* player;
 static const char engineSfxUrl[] = "resources/sfx/engineCircular_000.ogg";
 static const char shieldSfxUrl[] = "resources/sfx/forceField_000.ogg";
 static const char explodeShipSfxUrl[] = "resources/sfx/explosionCrunch_004.ogg";
 static std::vector<Shoot*> shoot;
 static const char laserSfxUrl[] = "resources/sfx/laserLarge_000.ogg";
 static Sound laserSfx;
+static HpPowerUp* hpPowerUp;
+static const char hpSpriteUrl[] = "resources/images/icon_plusSmall.png";
+static const char hpSfxUrl[] = "resources/sfx/question_003.ogg";
 //--------------------------------------------------
 
 // Meteors------------------------------------------
@@ -195,6 +200,8 @@ static void InitGame()
 
 #pragma endregion
 
+#pragma region Player Shoots and Powerups
+
     // Initialization player
     if(player == nullptr)
     {
@@ -205,6 +212,20 @@ static void InitGame()
         player->setPosition(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 });
         player->resetState();
     }
+
+    if (hpPowerUp == nullptr)
+    {
+        hpPowerUp = new HpPowerUp({ 0,0 }, hpSpriteUrl, hpSfxUrl, { 0,0 }, meteorsSpeed, 0, shipRadius, false);
+    }
+
+    for (Shoot* s : shoot)
+    {
+        delete s;
+    }
+    shoot.clear();
+
+#pragma endregion
+
 
 #pragma region HUD and Main Menu
 
@@ -318,12 +339,6 @@ static void InitGame()
 #pragma region Meteors
 
     destroyedMeteorsCount = 0;
-
-    for (Shoot* s : shoot)
-    {
-        delete s;
-    }
-    shoot.clear();
 
     // Initialization shoot
     for (int i = 0; i < shipMaxShoots; i++)
@@ -492,6 +507,17 @@ static void UpdateGame()
             if (!pause)
             {
                 player->update();
+
+                hpPowerUp->update();
+
+                if (hpPowerUp->getActive())
+                {
+                    if (CheckCollisionCircles(player->getPosition(), player->getRadius(), hpPowerUp->getPosition(), hpPowerUp->getRadius()))
+                    {
+                        hpPowerUp->setActive(false);
+                        player->resetShield();
+                    }
+                }
 
                 // Player shoot logic
                 if (IsMouseButtonPressed(0))
@@ -712,11 +738,11 @@ static void DrawGame()
 
 #pragma region Parallax Draw
 
-    DrawTextureEx(background, { scrollingBack, 20 }, 0.0f, 2.0f, WHITE);
-    DrawTextureEx(background, { background.width * 2 + scrollingBack, 20 }, 0.0f, 2.0f, WHITE);
+    DrawTextureEx(background, { scrollingBack, 20 }, 0.0f, 4.0f, WHITE);
+    DrawTextureEx(background, { background.width * 2 + scrollingBack, 20 }, 0.0f, 4.0f, WHITE);
 
-    DrawTextureEx(midground, { scrollingMid, 20 }, 0.0f, 2.0f, WHITE);
-    DrawTextureEx(midground, { midground.width * 2 + scrollingMid, 20 }, 0.0f, 2.0f, WHITE);
+    DrawTextureEx(midground, { scrollingMid, 20 }, 0.0f, 4.0f, WHITE);
+    DrawTextureEx(midground, { midground.width * 2 + scrollingMid, 20 }, 0.0f, 4.0f, WHITE);
 
 #pragma endregion
 
@@ -725,8 +751,8 @@ static void DrawGame()
     {
     case GameState::MainMenu:
 
-        DrawText("Asteroid xD", (float)GetScreenWidth() / 2 - MeasureText("Asteroid xD", 60) / 2, (float)GetScreenHeight() * 0.15f, 60, WHITE);
-        DrawText("Created by Matias Galarza (art from Kenney)", GetScreenWidth() * 0.01f, GetScreenHeight() - 15, 15, GRAY);
+        DrawText("Asteroid xD", (float)GetScreenWidth() / 2 - MeasureText("Asteroid xD", 80) / 2, (float)GetScreenHeight() * 0.15f, 80, WHITE);
+        DrawText("Created by Matias Galarza", GetScreenWidth() * 0.01f, GetScreenHeight() - 15, 15, GRAY);
 
         playButton->setText(TextFormat("JUGAR NIVEL %0i", level));
         playButton->draw();
@@ -749,6 +775,8 @@ static void DrawGame()
         if (!gameOver)
         {
             player->draw();
+
+            hpPowerUp->draw();
 
             // Draw meteors
             for (int i = 0; i < maxBigMeteors; i++)
@@ -878,6 +906,8 @@ static void UnloadGame()
 {
     // Delete Player
     delete player;
+
+    delete hpPowerUp;
 
     // Delete Shoots
     for (Shoot* s : shoot)

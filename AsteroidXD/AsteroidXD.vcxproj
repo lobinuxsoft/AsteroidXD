@@ -96,6 +96,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Class\GameObjects\HpPowerUp.cpp" />
     <ClCompile Include="src\Class\UIObjects\ProgressBar.cpp" />
     <ClCompile Include="src\Class\UIObjects\Button.cpp" />
     <ClCompile Include="src\Class\GameObjects\Shoot.cpp" />
@@ -107,6 +108,7 @@
     <ClCompile Include="src\Utils\Vector2Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Class\GameObjects\HpPowerUp.h" />
     <ClInclude Include="src\Class\UIObjects\ProgressBar.h" />
     <ClInclude Include="src\Class\UIObjects\Button.h" />
     <ClInclude Include="src\Class\GameObjects\Shoot.h" />
