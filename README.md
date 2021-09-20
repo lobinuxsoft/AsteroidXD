@@ -1,6 +1,6 @@
-![Glichteroids](https://www.dynamite.com/previews/C1524101036/ArtofAtari124125.jpg)
+![Glichteroids](background.jpg)
 ##### imagen de `ART of ATARI` by `Tim Lapetino`
-# **`AsteroidXD`** a Asteroids clone game
+# **`Asteroid xD`** a Asteroids clone game
 ---
 ## `Introducción`
 > Este solo es un clon de un juego clásico...
