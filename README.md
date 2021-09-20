@@ -1,5 +1,4 @@
 ![Glichteroids](background.jpg)
-##### imagen de `ART of ATARI` by `Tim Lapetino`
 # **`Asteroid xD`** a Asteroids clone game
 ---
 ## `Introducción`
