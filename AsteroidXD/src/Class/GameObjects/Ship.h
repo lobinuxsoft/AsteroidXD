@@ -1,5 +1,5 @@
 #pragma once
-#include "../Entity.h"
+#include "Class/Entity.h"
 
 class Ship : public Entity
 {
@@ -35,6 +35,7 @@ public:
     float getRadius();
     int getShield();
     int getMaxShield();
+    void resetShield();
     void resetState();
     float getMaxSpeed();
     bool damageShip(Vector2 hitPos = { 0,0 });

@@ -7,13 +7,14 @@
 #include "Class/GameObjects/Shoot.h"
 #include "Class/UIObjects/Button.h"
 #include "Class/UIObjects/ProgressBar.h"
+#include "Class/GameObjects/HpPowerUp.h"
 
 #pragma region CONSTANT VARIABLES
 
 static const char gameIconUrl[] = "resources/images/icon.png";
 static Image gameIcon;
-static const int screenWidth = 800;
-static const int screenHeight = 450;
+static const int screenWidth = 1024;
+static const int screenHeight = 720;
 static bool isFullScreen = false;
 
 static const int shipMaxShoots = 10;
@@ -46,6 +47,8 @@ Desarrollador: Matias Galarza
 
 Arte: 
 -Simple Space, creado por Kenney (https://kenney.nl/assets/simple-space)
+-Crosshair Pack, creado por Kenney (https://kenney.nl/assets/crosshair-pack)
+-Space Background, creado por Ansimuz (https://opengameart.org/content/space-background-3)
 
 Sounds FX:
 - Sci-Fi Sounds, creado por Kenney (https://kenney.nl/assets/sci-fi-sounds)
@@ -54,6 +57,9 @@ Sounds FX:
 Musica:
 - Cyberpunk Moonlight Sonata,
   creado por Joth (https://opengameart.org/content/cyberpunk-moonlight-sonata)
+
+- Fight creado por Ville Nousiainen / Xythe / mutkanto
+  (https://opengameart.org/content/fast-fight-battle-music)
 )";
 
 #pragma endregion
@@ -79,6 +85,25 @@ static bool pause = false;
 static bool victory = false;
 static int level = 1;
 
+static const char crosshair1Url[] = "resources/images/crosshair158.png";
+static const char crosshair2Url[] = "resources/images/crosshair185.png";
+
+static Texture2D crosshair1;
+static Texture2D crosshair2;
+static float crosshair1Rot = 0.0f;
+static float crosshair2Rot = 0.0f;
+
+// Backgrounds--------------------------------------
+
+static const char backgroundUrl[] = "resources/images/parallax-space-far-planets.png";
+static const char midgroundUrl[] = "resources/images/parallax-space-stars.png";
+static Texture2D background;
+static Texture2D midground;
+static float scrollingBack = 0.0f;
+static float scrollingMid = 0.0f;
+
+//--------------------------------------------------
+
 // Music--------------------------------------------
 
 static const char mainMusicUrl[] = "resources/music/CyberpunkMoonlightSonata.ogg";
@@ -92,13 +117,16 @@ static Music gameplayMusic;
 // Gameplay objects
 // Player Ship and shoots---------------------------
 static const char shipImgUrl[] = "resources/images/ship_G.png";
-static Ship *player;
+static Ship* player;
 static const char engineSfxUrl[] = "resources/sfx/engineCircular_000.ogg";
 static const char shieldSfxUrl[] = "resources/sfx/forceField_000.ogg";
 static const char explodeShipSfxUrl[] = "resources/sfx/explosionCrunch_004.ogg";
 static std::vector<Shoot*> shoot;
 static const char laserSfxUrl[] = "resources/sfx/laserLarge_000.ogg";
 static Sound laserSfx;
+static HpPowerUp* hpPowerUp;
+static const char hpSpriteUrl[] = "resources/images/icon_plusSmall.png";
+static const char hpSfxUrl[] = "resources/sfx/question_003.ogg";
 //--------------------------------------------------
 
 // Meteors------------------------------------------
@@ -148,6 +176,12 @@ static void InitGame()
     victory = false;
     pause = false;
 
+    crosshair1 = LoadTexture(crosshair1Url);
+    crosshair2 = LoadTexture(crosshair2Url);
+
+    background = LoadTexture(backgroundUrl);
+    midground = LoadTexture(midgroundUrl);
+
 #pragma region Audio
 
     if (!IsAudioDeviceReady())
@@ -166,6 +200,8 @@ static void InitGame()
 
 #pragma endregion
 
+#pragma region Player Shoots and Powerups
+
     // Initialization player
     if(player == nullptr)
     {
@@ -176,6 +212,20 @@ static void InitGame()
         player->setPosition(Vector2{ GetScreenWidth() / 2 - shipRadius / 2, GetScreenHeight() / 2 - shipRadius / 2 });
         player->resetState();
     }
+
+    if (hpPowerUp == nullptr)
+    {
+        hpPowerUp = new HpPowerUp({ 0,0 }, hpSpriteUrl, hpSfxUrl, { 0,0 }, meteorsSpeed, 0, shipRadius, false);
+    }
+
+    for (Shoot* s : shoot)
+    {
+        delete s;
+    }
+    shoot.clear();
+
+#pragma endregion
+
 
 #pragma region HUD and Main Menu
 
@@ -290,12 +340,6 @@ static void InitGame()
 
     destroyedMeteorsCount = 0;
 
-    for (Shoot* s : shoot)
-    {
-        delete s;
-    }
-    shoot.clear();
-
     // Initialization shoot
     for (int i = 0; i < shipMaxShoots; i++)
     {
@@ -389,6 +433,17 @@ static void InitGame()
 // Update game (one frame)
 static void UpdateGame()
 {
+#pragma region Parallax Update
+
+    scrollingBack -= 0.1f;
+    scrollingMid -= 0.5f;
+
+    if (scrollingBack <= -background.width * 2) scrollingBack = 0;
+    if (scrollingMid <= -midground.width * 2) scrollingMid = 0;
+
+#pragma endregion
+
+
     switch (gameState)
     {
     case GameState::MainMenu:
@@ -452,6 +507,17 @@ static void UpdateGame()
             if (!pause)
             {
                 player->update();
+
+                hpPowerUp->update();
+
+                if (hpPowerUp->getActive())
+                {
+                    if (CheckCollisionCircles(player->getPosition(), player->getRadius(), hpPowerUp->getPosition(), hpPowerUp->getRadius()))
+                    {
+                        hpPowerUp->setActive(false);
+                        player->resetShield();
+                    }
+                }
 
                 // Player shoot logic
                 if (IsMouseButtonPressed(0))
@@ -670,12 +736,23 @@ static void DrawGame()
 
     ClearBackground(BLACK);
 
+#pragma region Parallax Draw
+
+    DrawTextureEx(background, { scrollingBack, 20 }, 0.0f, 4.0f, WHITE);
+    DrawTextureEx(background, { background.width * 2 + scrollingBack, 20 }, 0.0f, 4.0f, WHITE);
+
+    DrawTextureEx(midground, { scrollingMid, 20 }, 0.0f, 4.0f, WHITE);
+    DrawTextureEx(midground, { midground.width * 2 + scrollingMid, 20 }, 0.0f, 4.0f, WHITE);
+
+#pragma endregion
+
+
     switch (gameState)
     {
     case GameState::MainMenu:
 
-        DrawText("Asteroid xD", (float)GetScreenWidth() / 2 - MeasureText("Asteroid xD", 60) / 2, (float)GetScreenHeight() * 0.15f, 60, WHITE);
-        DrawText("Created by Matias Galarza (art from Kenney)", GetScreenWidth() * 0.01f, GetScreenHeight() - 15, 15, GRAY);
+        DrawText("Asteroid xD", (float)GetScreenWidth() / 2 - MeasureText("Asteroid xD", 80) / 2, (float)GetScreenHeight() * 0.15f, 80, WHITE);
+        DrawText("Created by Matias Galarza", GetScreenWidth() * 0.01f, GetScreenHeight() - 15, 15, GRAY);
 
         playButton->setText(TextFormat("JUGAR NIVEL %0i", level));
         playButton->draw();
@@ -698,6 +775,8 @@ static void DrawGame()
         if (!gameOver)
         {
             player->draw();
+
+            hpPowerUp->draw();
 
             // Draw meteors
             for (int i = 0; i < maxBigMeteors; i++)
@@ -772,7 +851,7 @@ static void DrawGame()
     case GameState::Credits:
 
         DrawText("CREDITOS", GetScreenWidth() / 2 - MeasureText("CREDITOS", 40) / 2, GetScreenHeight() * 0.05f, 40, WHITE);
-        DrawText(creditsText, GetScreenWidth() / 2 - MeasureText(creditsText, 15) / 2, GetScreenHeight() * 0.1f, 15, WHITE);
+        DrawText(creditsText, GetScreenWidth() / 2 - MeasureText(creditsText, 14) / 2, GetScreenHeight() * 0.1f, 14, WHITE);
 
         creditsButton->setPivot({ 0.5f,1.0f });
         creditsButton->setPosition(Vector2{ (float)GetScreenWidth() * 0.5f, (float)GetScreenHeight() * 0.98f });
@@ -782,7 +861,35 @@ static void DrawGame()
     }
 
     //Mouse position
+#pragma region Mouse Crosshair Draw
+    
+    crosshair1Rot += GetFrameTime() * 90;
+    crosshair2Rot -= GetFrameTime() * 45;
+
+    // Crosshair 1
+    DrawTexturePro(
+        crosshair1,
+        Rectangle{ 0,0,(float)crosshair1.width,(float)crosshair1.height },
+        Rectangle{ (float)GetMouseX(), (float)GetMouseY(), (float)crosshair1.width * 0.5f,(float)crosshair1.height * 0.5f },
+        Vector2{ ((float)crosshair1.width * 0.5f) / 2, ((float)crosshair1.height * 0.5f) / 2 },
+        crosshair1Rot,
+        GREEN);
+
+    // Crosshair 2
+    DrawTexturePro(
+        crosshair2,
+        Rectangle{ 0,0,(float)crosshair2.width,(float)crosshair2.height },
+        Rectangle{ (float)GetMouseX(), (float)GetMouseY(), (float)crosshair2.width * 0.3f,(float)crosshair2.height * 0.3f },
+        Vector2{ ((float)crosshair2.width * 0.3f) / 2, ((float)crosshair2.height * 0.3f) / 2 },
+        crosshair2Rot,
+        LIME);
+    
+#if _DEBUG
     DrawCircle(GetMouseX(), GetMouseY(), 5, RED);
+#endif
+
+#pragma endregion
+
 
     EndDrawing();
 }
@@ -799,6 +906,8 @@ static void UnloadGame()
 {
     // Delete Player
     delete player;
+
+    delete hpPowerUp;
 
     // Delete Shoots
     for (Shoot* s : shoot)

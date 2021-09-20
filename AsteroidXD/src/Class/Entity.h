@@ -1,5 +1,5 @@
 #pragma once
-#include "../Utils/Vector2Utils.h"
+#include "Utils/Vector2Utils.h"
 
 class Entity
 {
